@@ -1,0 +1,722 @@
+extends Node2D
+class_name Base_Entity
+
+onready var player = Globals.PLAYER
+
+var texDim
+
+var targetsArr = []
+var curTarget = null
+var faction:int
+var id:int = Globals.getId()
+
+signal _isdestroyed
+signal _damage_taken
+signal objectiveDestroyed
+signal _has_warped_in
+signal _has_warped_out
+
+var smoke:int
+var max_smoke:int
+var destroyed:bool = false
+var is_target:bool = false
+var is_protect:bool = false
+var target_indicator:POI_MARKER = null
+var indestructable:bool = false
+var targetable:bool = true
+var invulnerable:bool = false
+var real:bool = true
+var isObstacle:bool = false
+var forcedLock:bool = false
+
+var healthbar = null
+var missionhealthbar = null
+var healthlabel = null
+var shieldbar = null
+var shieldlabel = null
+var lifetimelabel = null
+var debug_menu_row = null
+var UI_node = null
+var full_ui_box = null
+
+var isPlayer:bool = false
+var isWeapon:bool = false
+var canWarp:bool = false
+var isWarping:bool = false
+
+export var health:int
+var mass:float
+var maxHealth:int
+var shield:int
+var maxShield:int
+var armor:int = 0
+var maxSpeed:int = 0
+var minSpeed:int = 0
+var enginePower:int = 0
+var thrust:int = 0
+var lootValue:int = 0
+
+var lifetime:float = 0.0
+var quality = -10
+var result = []
+var stock_result = []
+var mods = []
+
+var ramDmg:int = 0
+var isRamming = false
+var rammings = []
+
+var desc:String = ""
+var dmgZones = {"DmgNormal": 1, "DmgWeak": 2, "DmgStrong": 0.5}
+
+var subPanel_Stats = null
+var has_ControlNodes:bool = false
+var recoilForce = Vector2.ZERO
+var impactForce = Vector2.ZERO
+
+func _ready():
+	pass
+
+func set_stats():
+	pass
+	
+func do_custom_init():
+	pass
+		
+func _physics_process(delta):
+	processRamming(delta)
+	if has_ControlNodes:
+		handleControlNodes()
+	
+func handleControlNodes():
+	for n in $ControlNodes.get_children():
+		n.rect_position = global_position + n.offset
+
+func _draw():
+	if is_target:
+		draw_rect(Rect2(-texDim.x*0.75, -texDim.y*0.75, texDim.x*1.5, texDim.y*1.55), Color(1, 0, 0, 0.2))
+	elif is_protect:
+		draw_rect(Rect2(-texDim.x*0.75, -texDim.y*0.75, texDim.x*1.5, texDim.y*1.55), Color(0, 1, 0, 0.2))
+	return
+	
+	draw_rect(Rect2(-texDim.x*0.75, -texDim.y*0.75, texDim.x*1.5, texDim.y*1.55), Color(1, 0, 0, 0.2))
+	
+#	draw_rect(Rect2(-texDim.x, -texDim.y, texDim.x*2, texDim.y*2), Color(1, 0, 0, 0.7), false, 3)
+#	draw_line(Vector2(-texDim.x*1.3, 0), Vector2(texDim.x*1.3, 0), Color(1, 0, 0, 0.7), 3, false)
+#	draw_line(Vector2(0, -texDim.y*1.3), Vector2(0, texDim.y*1.3), Color(1, 0, 0, 0.71), 3, false)
+
+	
+func setCollisionTo(node):
+	var colShape = CollisionShape2D.new()
+	colShape.shape = RectangleShape2D.new()
+	$ColNodes/DmgNormal.add_child(colShape)
+
+	var x = get_node(node).texture.get_width() * get_node(node).scale.x
+	var y = get_node(node).texture.get_height() * get_node(node).scale.y
+	colShape.shape.extents = Vector2(x/2, y/2)
+	
+	$Sprites/Main.offset = Vector2(0, 0)
+	$ColNodes/DmgNormal.get_child(0).disabled = true
+	
+func makeClickable(node):
+	$ColNodes/DmgNormal.connect("input_event", self, str(node.name.to_lower(), "_on_input_event"))
+	
+func sprite_on_input_event(_viewport, event, _shape_idx):
+	if  event is InputEventMouseButton and event.pressed and event.button_index == BUTTON_LEFT:
+		print("sprite click")
+		
+func icon_on_input_event(_viewport, event, _shape_idx):
+	if  event is InputEventMouseButton and event.fssed and event.button_index == BUTTON_LEFT:
+		print("icon click")
+
+func makeHighlightable(node):
+	$ColNodes/DmgNormal.connect("mouse_entered", self, str(node.name.to_lower(), "_on_mouse_entered"))
+	$ColNodes/DmgNormal.connect("mouse_exited", self, str(node.name.to_lower(), "_on_mouse_exited"))
+	var outline = load("res://styles/outline.shader")
+	node.material = ShaderMaterial.new()
+	node.material.shader = outline
+	node.material.resource_local_to_scene = true
+	node.material.set_shader_param("width", 0.0)
+	node.material.set_shader_param("color", Color(1, 1, 0, 1))
+	
+func sprite_on_mouse_entered():
+#	print("sprite in")
+	$Sprites/Main.material.set_shader_param("width", 3.0)
+	
+func sprite_on_mouse_exited():
+#	print("sprite out")
+	$Sprites/Main.material.set_shader_param("width", 0.0)
+	
+func icon_on_mouse_entered():
+#	print("icon in")
+	$Icon.material.set_shader_param("width", 3.0)
+	
+func icon_on_mouse_exited():
+#	print("icon out")
+	$Icon.material.set_shader_param("width", 0.0)
+
+func take_damage(entity, totalDmg:int):
+	
+#	totalDmg *= 2
+	#print("take_damage scope: ", self.display, " #", self.id)
+#	var minDmg:int = entity.minDmg * dmgMulti
+#	var maxDmg:int = entity.maxDmg * dmgMulti
+#	var totalDmg:int = Globals.rng.randi_range(minDmg, maxDmg)
+
+	var pos = entity.getPointOfImpact(self)
+	var angle = entity.getAttackAngle(self)
+	
+	applyForce(-(entity.impactForce).rotated(angle))
+	
+	if totalDmg > 0:
+		var remDmg:int = max(0, totalDmg - self.armor)
+		if remDmg > 0:
+			handle_hull_damage(remDmg, pos, angle)
+			emit_signal("_damage_taken")
+
+func applyForce(_force):
+	return
+		
+func updateShield():
+	return
+	
+func handle_hull_damage(remDmg, pos, angle):
+	var labelPos = global_position + Vector2(Globals.rng.randi_range(-25, 25), -(texDim.y/2) -10)
+	createFloatingLabel(remDmg, labelPos, Vector2(0, -100))
+	addHitExplosion(remDmg, pos, angle)
+	if invulnerable or destroyed:
+		return
+	health -= remDmg
+	checkForTriggers("on_damage")
+	
+		
+	if isPlayer:
+		var trauma = remDmg/25.0
+		Globals.curScene.get_node("CamA").add_trauma(trauma)
+	else:
+		check_hp_post_dmg(remDmg)
+	
+func checkForTriggers(_condition):
+	return
+
+func check_hp_post_dmg(amount):
+#	print("check_hp_post_dmg ", get_class())
+	if health <= 0:
+		kill()
+	elif smoke == 0 && smoke < max_smoke && health <= self.maxHealth / 2:
+#	elif smoke == 0 && health <= self.maxHealth / 2:
+		smoke += 1
+		add_smoke_fx(Globals.getSmokeNode(0.5))
+	return false
+	
+func get_class():
+	return "Base_Entity"
+	
+func add_fire_smoke_fx(scale:float, delay:float):
+	var pos = get_point_inside_tex()
+	var node = Globals.getFireSmokeNode(scale)
+	node.delay = delay
+	node.position = pos
+	$EffectNodes.add_child(node)
+	
+func add_exp_fire_smoke_fx(scale:float, delay:float):
+	var pos = get_point_inside_tex()
+	var explo = Globals.getExplo("radial", scale, delay)
+	explo.position = pos
+	$EffectNodes.add_child(explo)
+	var node = Globals.getFireSmokeNode(scale, delay + 0.2)
+	node.position = pos
+	$EffectNodes.add_child(node)
+	
+func add_smoke_fx(node):
+	node.position = get_point_inside_tex()
+	$EffectNodes.add_child(node)
+	
+func disable_col_nodes():
+	if has_node("ColNodes"):
+		call_deferred("next_frame_disable_col_nodes")
+	
+func next_frame_disable_col_nodes():
+#	print("disabling ", self.display)
+	for n in $ColNodes.get_children():
+		n.set("monitoring", false)
+		n.set("monitorable", false)
+		for i in n.get_children():
+			i.disabled = true
+	
+	if has_node("Sight"):
+		$Sight.set("monitoring", false)
+		$Sight.set("monitorable", false)
+		for n in $Sight.get_children():
+			n.disabled = true
+				
+	if has_node("Phys"):
+		$Phys.set("monitoring", false)
+		$Phys.set("monitorable", false)
+		for n in $Phys.get_children():
+			n.disabled = true
+			
+func enableCollisionNodes():
+#	print(self.display, ": ENABLE collisions")
+	call_deferred("next_frame_enableCollisionNodes")
+			
+func next_frame_enableCollisionNodes():
+#	print("enabling colNodes ", self.display)
+	for n in $ColNodes.get_children():
+		n.set("monitoring", true)
+		n.set("monitorable", true)
+		for i in n.get_children():
+			i.disabled = false
+	
+	if has_node("Sight"):
+		$Sight.set("monitoring", true)
+		$Sight.set("monitorable", true)
+		for n in $Sight.get_children():
+			n.disabled = false
+
+	if has_node("Phys"):
+		$Phys.set("monitoring", true)
+		$Phys.set("monitorable", true)
+		for n in $Phys.get_children():
+			n.disabled = false
+
+func kill():
+	if isPlayer or destroyed or indestructable:
+		return
+		
+	destroyed = true
+	emit_signal("_isdestroyed")
+	emit_signal("objectiveDestroyed")
+	call_deferred("create_currency")
+	set_physics_process(false)
+	$SM.enabled = false
+	
+	for n in $Mounts.get_children():
+		n.kill()
+		
+	if has_node("Tween"):
+		if $Tween.is_active(): 
+			$Tween.stop_all()
+			$Tween.remove_all()
+	
+	if has_node("TimerNodes"):
+		if $TimerNodes.has_node("WarpOutTimer"):
+			$TimerNodes/WarpOutTimer.stop()
+			cancelWarpOut()
+	if has_node("EffectNodes"):
+		for n in $EffectNodes.get_children():
+			if n.delay > 0:
+				print("Ding")
+				n.delay = -1.0
+	
+	hide_control_nodes()
+	stop_upcoming_effect_nodes()
+
+	if debug_menu_row != null:
+		mark_debug_menu_entry_as_killed()
+	
+	if is_target:
+		unmark_as_target()
+	elif is_protect:
+		unmark_as_protect()
+		
+	create_final_kill_explos()
+		
+func stop_upcoming_effect_nodes():
+	for n in $EffectNodes.get_children():
+		if n.delay > 0.0:
+			n.set_physics_process(false)
+
+func create_final_kill_explos():
+	var amount = ceil((texDim.x + texDim.y) / 24)
+#	print("killing ", self.display, ", explos: ", amount)
+#	amount = 3
+	var maxDelay:float
+		
+	for n in ceil(amount*1):
+#		print("adding explo ", n)
+#		for n in 1:
+		var delay = rand_range(1.0, 4.2)
+		maxDelay = max(maxDelay, delay)
+		var scale = get_dmg_gfx_scale()
+#		
+		add_exp_fire_smoke_fx(scale, delay)
+		
+		
+func mark_debug_menu_entry_as_killed():
+	return
+		
+func cancelWarpOut():
+	return 
+	
+func mark_as_target():
+	if not is_target:
+		is_target = true
+		Globals.UI.poi.add_indicator(Globals.PLAYER, self)
+		update()
+	
+func unmark_as_target():
+	if is_target:
+		is_target = false
+		Globals.UI.poi.remove_indicator(self)
+		update()
+	
+func mark_as_protect():
+	if not is_protect:
+		is_protect = true
+		Globals.UI.poi.add_indicator(Globals.PLAYER, self)
+		update()
+	
+func unmark_as_protect():
+	if is_protect:
+		is_protect = false
+		Globals.UI.poi.remove_indicator(self)
+		update()
+
+func create_currency():
+	return
+	
+func add_shield_bar(size:float = 1.0):
+#	print("add_shield_bar on ", self.display)
+	shieldbar = Globals.SHIELDBAR.instance()
+	shieldbar.offset = Vector2(0, 80)
+	var bar = shieldbar.get_node("ProgressBar")
+	bar.min_value = 0
+	bar.max_value = round(self.maxShield)
+	setShieldBarHealth()
+	has_ControlNodes = true
+	$ControlNodes.add_child(shieldbar)
+	shieldbar.set_as_toplevel(true)
+	
+	if size:
+		shieldbar.rect_scale = Vector2(size, size)
+	#	target.offset.y *= targetScale
+		if size <= 0.5:
+			shieldbar.get_child(0).percent_visible = false
+
+func add_health_bar(size:float = 1.0):
+#	print("add_health_bar on ", self.display)
+	healthbar = Globals.HEALTHBAR.instance()
+	var bar = healthbar.get_node("ProgressBar")
+	bar.min_value = 0
+	bar.max_value = round(self.maxHealth)
+	setHealthBarHealth()
+	has_ControlNodes = true
+	$ControlNodes.add_child(healthbar)
+	healthbar.set_as_toplevel(true)
+	
+	if size:
+		healthbar.rect_scale = Vector2(size, size)
+	#	target.offset.y *= targetScale
+		if size <= 0.5:
+			healthbar.get_child(0).percent_visible = false
+	
+func getMissionHealthBar():
+#	print("getMissionHealthBar on ", self.display)
+	healthbar = Globals.HEALTHBAR.instance()
+	var bar = healthbar.get_node("ProgressBar")
+	bar.min_value = 0
+	bar.max_value = round(maxHealth)
+	bar.value = round(health)
+	return healthbar
+	
+func addHealthLabel():
+	healthlabel = Globals.HEALTHLABEL.instance()
+	setHealthLabelHealth()
+	healthlabel.offset = Vector2(0, texDim.y/2 + 20)
+	has_ControlNodes = true
+	$ControlNodes.add_child(healthlabel)
+	healthlabel.set_as_toplevel(true)
+	
+func addShieldLabel():
+	shieldlabel = Globals.HEALTHLABEL.instance()
+	setHealthLabelHealth()
+	shieldlabel.offset = Vector2(0, texDim.y/2 + 20)
+	has_ControlNodes = true
+	$ControlNodes.add_child(shieldlabel)
+	shieldlabel.set_as_toplevel(true)
+	
+func _on_damage_taken():
+	if healthbar != null:
+		setHealthBarHealth()
+	if missionhealthbar != null:
+		setmissionhealthbar()
+	if healthlabel != null:
+		setHealthLabelHealth()
+	if not destroyed and debug_menu_row != null:
+		debug_menu_row.get_node("hp/label").text = str(health, "/", maxHealth)
+
+func setHealthBarHealth():
+	healthbar.get_node("ProgressBar").value = self.health
+	
+func setmissionhealthbar():
+	missionhealthbar.value = self.health
+	
+func setHealthLabelHealth():
+	healthlabel.get_node("Label").text = str(round(self.health), " / ", self.maxHealth)
+		
+func setShieldBarHealth():
+	if shieldbar == null:
+		return
+	if shieldbar is TextureProgress:
+		shieldbar.value = self.shield
+		shieldbar.max_value = self.maxShield
+		if shieldbar.has_node("Value"):
+			shieldbar.get_node("Value").text = str(round(self.shield), " / ", self.maxShield)
+	else:
+		shieldbar.get_node("ProgressBar").value = self.shield
+		shieldbar.get_node("ProgressBar").max_value = self.maxShield
+		if shieldbar.has_node("Value"):
+			shieldbar.get_node("Value").text = str(round(self.shield), " / ", self.maxShield)
+		
+func setShieldBarBreakTime(time_left):
+	if shieldbar and shieldbar.has_node("Value"):
+		shieldbar.get_node("Value").text = str("%.1f" % time_left)
+	
+func setShieldLabelHealth():
+	shieldlabel.get_node("Label").text = str(round(self.shield), " / ", self.maxShield)
+	
+func modify():
+	pass
+	texDim = Vector2($Sprites/Main.texture.get_width() * $Sprites/Main.scale.x, $Sprites/Main.texture.get_height() * $Sprites/Main.scale.y)
+	
+func get_point_inside_tex() -> Vector2:
+	var tex: Image = $Sprites/Main.texture.get_data()
+	var dim: Vector2 = tex.get_size()
+	var scale: Vector2 = $Sprites/Main.scale
+	var tex_dim: Vector2 = Vector2(dim.x * scale.x, dim.y * scale.y)
+
+	tex.lock()
+
+	for tries in range(100):
+		var pos := Vector2(
+			Globals.rng.randi_range(0, dim.x - 1),
+			Globals.rng.randi_range(0, dim.y - 1)
+		)
+
+		var p: Color = tex.get_pixelv(pos)
+
+		if p.a > 0.5:
+			var scaled_pos := Vector2(pos) * scale
+
+			# Offset so returned point is centered relative to sprite
+			var final_pos := Vector2(
+				clamp(-tex_dim.x / 2 + scaled_pos.x, -tex_dim.x / 2, tex_dim.x / 2),
+				clamp(-tex_dim.y / 2 + scaled_pos.y, -tex_dim.y / 2, tex_dim.y / 2)
+			)
+
+			tex.unlock()
+			return final_pos
+
+	tex.unlock()
+
+	# Fallback if no opaque pixel found
+	return Vector2.ZERO
+	
+func makeInvisible():
+	$Sprites.visible = false
+	
+func makeUntargetable():
+	indestructable = true
+	disable_col_nodes()
+	call_deferred("next_frame_disable_col_nodes")
+
+func _on_LOOTNODE_mouse_entered(node):
+#	print("mouse in")
+#	node.theme_type_variation = "panel_magenta_border"
+#	return
+	var new_stylebox_normal = node.get_stylebox("panel").duplicate()
+#	new_stylebox_normal.border_color = Globals.MAGENTA
+	new_stylebox_normal.bg_color = Globals.MAGENTA
+	node.add_stylebox_override("panel", new_stylebox_normal)
+#	
+func _on_LOOTNODE_mouse_exited(node):
+#	print("mouse out")
+#	node.theme_type_variation = ""
+#	return
+	node.add_stylebox_override("panel", null)
+	
+func createFloatingLabel(string, pos, vector, crit = false, color = null):
+	var dmg_label = Globals.DMG_LABEL.instance()
+	Globals.curScene.get_node("Various").add_child(dmg_label)
+	dmg_label.global_position = pos
+	dmg_label.init_floating_number(string, vector, 2.5, PI/2, crit, color)
+
+func addHitExplosion(damage, pos, angle):
+#	print(rad2deg(angle))
+	var baseDmg = 8.0
+	var scale:float  = sqrt(damage/baseDmg)
+	var explo = Globals.getExplo("basic", scale)
+	explo.position += pos
+	explo.rotation = angle
+	Globals.curScene.get_node("Various").add_child(explo)
+		
+func initRamming(area):
+	
+	var dict = RamState.new(area.owner.id, area.owner.display, 0.1, area, Engine.get_idle_frames(), true, Globals.getId())
+	
+#	var dict = {
+#		"rammedById": area.owner.id,
+#		"rammedByDisplay": area.owner.display,
+#		"ticks_til_dmg": 1.0,
+#		"rammingArea": area,
+#		"initFrame": Engine.get_idle_frames(),
+#		"legal": true,
+#		"uid": Globals.getId()
+#	}
+#	print("initRamming scope: ", self.display, " #", self.id, " being hit by: ", area.owner.display, " #", area.owner.id, " on frame: ", Engine.get_idle_frames(), " uid: ", dict.uid)
+
+#	if has_active_omni_shield() or area.owner.has_active_omni_shield():
+#		dict.legal = false
+	
+	isRamming = true
+	rammings.append(dict)
+	
+func has_active_omni_shixeld():
+	return false
+	
+func processRamming(delta):
+	if not len(rammings):
+		return
+#	print("processRamming, scope ", self.display, ", #", self.id)
+	for ramming in rammings:
+		if ramming.legal == true:
+			ramming.ticks_til_dmg -= delta
+#			print("ram cooldown: ", ramming.ticks_til_dmg)
+			if ramming.ticks_til_dmg <= 0:
+				ramming.ticks_til_dmg = 1.0
+#				print("processing ramming incoming from: ", ramming.rammedByDisplay, " #", ramming.rammedById, ", frame: ", Engine.get_idle_frames())
+				processRamDamage(ramming)
+	#			print("rammed by position: ", n.rammingArea.owner.global_position)
+	#			print("own speed: ", self.velocity, "___", self.velocity.length())
+	#			print("other speed: ", n.rammingArea.owner.velocity ,"____", n.rammingArea.owner.velocity.length())
+
+func processRamDamage(ramming):
+	print("processRamDamage:", self.display, " position: ", global_position)
+	var ramBullet = getRamDamage()
+	if ramBullet:
+		var a = (global_position - ramming.rammingArea.owner.global_position).angle()
+#		var b = rad2deg(global_position.angle_to(n.rammingArea.owner.global_position))
+		ramBullet.velocity = Vector2(1, 0).rotated(a)
+#		print("ram impactF: ", ramBullet.impactForce)
+#		print("angle: ", round(rad2deg(a)))
+
+		if ramming.rammingArea.owner.has_active_omni_shield():
+			ramming.rammingArea.owner.get_shield_weapon().take_damage(ramBullet, Globals.getRawDamage(ramBullet.minDmg, ramBullet.maxDmg, 1.0))
+		else:
+			ramming.rammingArea.owner.take_damage(ramBullet, Globals.getRawDamage(ramBullet.minDmg, ramBullet.maxDmg, 1.0))
+			
+	ramBullet.queue_free()
+		
+func getRamDamage():
+#	return false
+	var ramBullet = Globals.BULLET.instance()
+	Globals.curScene.get_node("Refs").add_child(ramBullet)
+	ramBullet.minDmg = round(pow(mass, 0.4))
+	ramBullet.maxDmg = round(ramBullet.minDmg * 1.3)
+#	print("ramBullet from ", self.display, ": ", ramBullet.minDmg, " - ", ramBullet.maxDmg)
+	ramBullet.set_physics_process(false)
+	ramBullet.disableTriggerCollisionNodes()
+	ramBullet.hide()
+	ramBullet.position = global_position
+#	var effect = (ramBullet.minDmg + ramBullet.maxDmg) * self.velocity.length() * mass
+#	ramBullet.impactForce = Globals.getRecoilForce(ramBullet.minDmg, ramBullet.maxDmg, self.velocity.length()) * mass / 2
+	return ramBullet
+	
+func kill_by_crash():
+	return
+	
+func endRamming(area):
+	if not isRamming: return
+#	print("endRamming on:", self.display, " #", self.id)
+	for n in rammings:
+		if n.rammingArea == area:
+			rammings.erase(n)
+			#print("endRamming-erasing ", n.rammedByDisplay, " #", n.rammedById, " on frame ", Engine.get_idle_frames(), ", id: ", n.uid)
+			break
+	if not len(rammings):
+#		print("isRamming = false")
+		isRamming = false
+	else:
+		print("dign")
+	
+func canExplodeOnContact():
+	return false
+	
+func postImpacting():
+	return
+
+func getIconContainer():
+	return
+
+func set_statsPanel():
+	if subPanel_Stats == null:
+		subPanel_Stats = load("res://ui/PanelItemStats.tscn").instance()
+	subPanel_Stats.rect_position = Vector2(0, 0)
+	subPanel_Stats.get_node("VBox/MC_Title/Label").text = str(self.display)
+	subPanel_Stats.get_node("VBox/MC_Desc/Label").text = str(desc)
+	
+	fillQualityRows()
+	fillStatsRows()
+
+func fillQualityRows():
+	pass
+	
+func fillStatsRows():
+	pass
+	
+func doInitUI():
+	if full_ui_box == null:
+		set_full_ui_box()
+		UI_node = full_ui_box.get_node("Vbox/Core")
+		subPanel_Stats = full_ui_box.get_node("Vbox/PanelItemStats")
+
+func set_full_ui_box():
+	var root = PanelContainer.new()
+	root.name = "PanelContainer_Loot"
+	root.set_h_size_flags(3)
+	var cont = VBoxContainer.new()
+	cont.name = "Vbox"
+	
+	cont.add_child(getIconContainer())
+	set_statsPanel()
+	cont.add_child(subPanel_Stats)
+	
+	root.add_child(cont)
+	full_ui_box = root
+
+func enter_pause():
+	if subPanel_Stats == null:
+		return
+	subPanel_Stats.get_node("Timer").stop()
+	subPanel_Stats.get_node("Tween").stop_all()
+	subPanel_Stats.set("modulate", Color(1, 1, 1, 1))
+	
+func leave_pause():
+	if subPanel_Stats == null:
+		return
+	subPanel_Stats.set("modulate", Color(1, 1, 1, 1))
+	subPanel_Stats.hide()
+
+func enterBoundary():
+	return
+
+func exitBoundary():
+	return
+	
+func get_dmg_gfx_scale():
+	return 1
+
+func get_shield_weapon():
+	for n in $Mounts/A.get_children():
+		if n.display == "Shield":
+			return n
+	return null
+	
+func show_control_nodes():
+	for n in get_node("ControlNodes").get_children():
+		n.show()
+	
+func hide_control_nodes():
+	for n in get_node("ControlNodes").get_children():
+		n.hide()

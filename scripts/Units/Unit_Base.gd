@@ -1,0 +1,1104 @@
+extends Base_Entity
+class_name Base_Unit
+
+export(Resource) var stats
+
+var wave_strength:int = 0
+
+var interest = []
+var danger = []
+var ray_directions = []
+var ray_degree = []
+var chosen_dir = Vector2.ZERO
+var avoidValues = []
+
+var num_rays:int
+var look_ahead:int
+var toching_bound:bool = false
+
+var moveTarget = Vector2.ZERO
+var startPos = Vector2.ZERO
+var direction = Vector2.ZERO
+var accel = Vector2.ZERO
+var velocity = Vector2.ZERO
+var extForces = Vector2.ZERO
+var gravity_vec = Vector2.ZERO
+var active_weapon_index:int = 0
+var items = []
+
+var sightRange:int = 0
+var coreRange:int = 50
+
+var escalation:int = 0
+var boosting:bool = false
+var aft_boosting:bool = false
+var front_boosting:bool = false
+var boostStrength:int = 0
+var boostTimeRemain:float = 0
+var steer_force:int = 0
+
+var ready = true
+var dmgBreaks = []
+
+var ram
+
+onready var sprite = $Sprites/Main
+onready var state_m = $SM
+
+var dir_update_frames:int = 12
+
+func _ready():
+	add_to_group("isUnit")
+	set_physics_process(true)
+
+func do_init_unit():
+	texDim = Vector2($Sprites/Main.texture.get_width() * $Sprites/Main.scale.x, $Sprites/Main.texture.get_height() * $Sprites/Main.scale.y)
+	name = str(self.display, "-", self.id)
+	max_smoke = ceil(texDim.length() / 100)
+	
+	set_stats()
+	setMass()
+
+	Globals.connectHurtBoxes(self)
+	
+	if has_node("Jump"):
+		$Jump.set_as_toplevel(true)
+	
+	setDamageBreaks()
+	init_lifetime()
+	#showDebug()
+	init_debug_menu_entry()
+	addPhysCollision()
+	initSteering()
+	initAvoidValues()
+	
+	do_specific_unit_init()
+	check_unit_debug_init()
+	
+func check_unit_debug_init():
+	if not has_node("Debug"):
+		return
+		
+	$Debug/moveTarget.set_as_toplevel(true)
+	$Debug/MoveTargetVector.set_as_toplevel(true)
+	$Debug/C/stats.set_as_toplevel(true)
+	$Debug/C/behav.set_as_toplevel(true)
+	
+	if Globals.MOVEDEBUG and faction != 0:
+		$Debug.show()
+		$Debug/moveTarget.show()
+		$Debug/MoveTargetVector.show()
+#		$Debug/C/stats.show()
+#		$Debug/C/behav.show()
+		$Debug/steering_input.hide()
+		
+		
+func do_specific_unit_init():
+	pass
+	
+func initAvoidValues():
+	pass
+	
+func addSightCollision():
+	
+	var maxSight:int = 0
+	
+	for mount in $Mounts.get_children():
+		if mount.has_node("Weapon"):
+			maxSight = max(maxSight, mount.get_node("Weapon").getMaxRange())
+#	print(self.display, " ", maxSight, " maxSight")
+	if not has_node("Sight"): 
+		return
+	var sight = CollisionShape2D.new()
+	sight.name = "CollisionShape2D"
+	sight.shape = CircleShape2D.new()
+	sight.shape.radius = sightRange
+	$Sight.add_child(sight)
+	
+func addPhysCollision():
+	var phys = CollisionShape2D.new()
+	phys.name = "CollisionShape2D"
+	phys.shape = CircleShape2D.new()
+	phys.shape.radius = coreRange
+	$Phys.add_child(phys)
+
+func setMass():
+	health = maxHealth
+	mass = stepify(pow(maxHealth, 1.2), 0.01)
+#	print(self.display, ": ", mass, " mass")
+
+func getDamageObject():
+#	print("error getDamageObject")
+	return ram
+	
+func setDamageBreaks():
+#	print("setDamageBreak: ", self.display)
+	for n in max_smoke:
+		dmgBreaks.append(100/(max_smoke+1)*(n+1))
+#	print(dmgBreaks)
+	
+func check_hp_post_dmg(amount):
+#	print("check_hp_post_dmg ", get_class())
+	if health <= 0:
+		kill()
+	elif stats.can_withdraw and withdraw_condition(amount):
+		enter_withdraw_condition_state()
+	elif stats.can_crash and crash_condition(amount):
+		enter_crash_condition_state()
+	else:
+		check_add_gfx_dmg_effect()
+
+func check_add_gfx_dmg_effect():
+	if smoke < max_smoke:
+		var fraction:float = float(health) / maxHealth * 100
+		if fraction < dmgBreaks[len(dmgBreaks)-1]:
+			dmgBreaks.pop_back()
+			smoke += 1
+			var scale = get_dmg_gfx_scale()
+			add_exp_fire_smoke_fx(scale * rand_range(0.8, 1.2), rand_range(0.4, 0.7))
+		
+func enter_withdraw_condition_state():
+	check_support_duration()
+	if canWarp:
+		$SM.set_state($SM.states.prepareWarpOut)
+		$SM.canChangeState = false
+	else:
+		$SM.set_state($SM.states.withdraw)
+	
+func enter_crash_condition_state():
+	check_support_duration()
+	$SM.canChangeState = false
+	$SM.set_state($SM.states.crash)
+	
+func crash_step_one():
+	pass
+
+func crash_condition(remDmg):
+	return false
+	
+func withdraw_condition(remDmg):
+	return false
+	
+func init_lifetime():
+	if lifetime <= 0.0:
+		return
+	
+	var timer = Timer.new()
+	timer.name = "rem_lifetime"
+	timer.wait_time = lifetime
+	timer.connect("timeout", self, "_on_support_duration_timeout", [timer])
+	get_node("TimerNodes").add_child(timer)
+	
+	var node = Globals.TEXT_LABEL.instance()
+	node.name = "rem_lifetime_label"
+	node.offset = Vector2(0, max(40, texDim.y + 10))
+	node.init_text_label_string(lifetime)
+	$ControlNodes.add_child(node)
+	
+func check_support_duration():
+	if has_node("ControlNodes/rem_lifetime_label") and get_node("ControlNodes/rem_lifetime_label").isUpdating:
+		get_node("TimerNodes/rem_lifetime").stop()
+		get_node("ControlNodes/rem_lifetime_label").isUpdating = false
+
+func set_wave_strength(strength):
+	wave_strength = strength
+	
+func showDebug():
+	if not has_node("Debug"):
+		return
+	$Debug/moveTarget.set_as_toplevel(true)
+	$Debug/moveTarget.show()
+	$Debug/MoveTargetVector.set_as_toplevel(true)
+	$Debug/MoveTargetVector.show()
+	$Debug/C/stats.set_as_toplevel(true)
+	$Debug/C/stats.show()
+	$Debug/C/behav.set_as_toplevel(true)
+	$Debug/C/behav.show()
+	
+	if not $Debug.visible:
+		$Debug/moveTarget.hide()
+		$Debug/MoveTargetVector.hide()
+		$Debug/C/stats.hide()
+		$Debug/C/behav.hide()
+		
+func hideDebug():
+	if not has_node("Debug"):
+		return
+	$Debug.hide()
+	$Debug/moveTarget.set_as_toplevel(false)
+	$Debug/moveTarget.hide()#
+	$Debug/MoveTargetVector.set_as_toplevel(false)
+	$Debug/MoveTargetVector.hide()
+	$Debug/C/stats.set_as_toplevel(false)
+	$Debug/C/stats.hide()
+	$Debug/C/behav.set_as_toplevel(false)
+	$Debug/C/behav.hide()
+	
+func randomizeWeaponStartCooldown():
+	return
+	for mount in $Mounts.get_children():
+		var weapon = mount.get_node("Weapon")
+		if weapon.rof != 0:
+			weapon.cooldown = rand_range(0, weapon.rof*2)
+
+func x_process(_delta):
+	if isWarping:
+		$Jump.position = global_position
+
+func _draw():
+	if Globals.SIGHTDEBUG:
+		drawSight()
+		drawCore()
+
+func drawSight():
+	draw_arc(Vector2.ZERO, sightRange, 0, TAU, 24, Color(0, 0, 1, 1), 1)
+	
+func drawCore():
+	return
+	draw_arc(Vector2.ZERO, coreRange, 0, TAU, 24, Color(1, 1, 0, 1), 1)
+			
+func _physics_process(_delta):
+	if destroyed or not ready: 
+		return
+		
+	updateDebugList()
+	update_debug_menu_entry()
+	$SM._process_state_logic(_delta)
+		
+	if toching_bound:
+		bound_process(_delta)
+	
+	velocity += gravity_vec * _delta
+	position += extForces * _delta
+#	position += gravity_vec * _delta
+	position += velocity * _delta
+	setUnitFacing()
+
+#	accel *= 0.99
+	velocity *= .99
+	
+#	if moveTarget == null:
+#		accel *= .99
+
+	if extForces:
+		if extForces.length() < 4:
+			extForces = Vector2.ZERO
+		extForces *= 0.97
+#	else:
+#		velocity += gravity_vec * _delta
+		
+	handle_weapons(_delta)
+	handleItems(_delta)
+		
+func process_movement(_delta):
+	pass
+	
+func bound_process(_delta):
+	pass
+	
+func get_weapon_by_index(index:int):
+	return $Mounts.get_child(index).get_node("Weapon")
+				
+func handle_weapons(_delta): # context: unit with several weapon mounts
+	for mount in $Mounts.get_children():
+		if mount.weapon:
+			mount.handle_mounted_weapon(targetsArr)
+
+#func handle_weapons(_delta): # context: unit with several weapon mounts
+#	for mount in $Mounts.get_children():
+#		if mount.weapon:
+#			var weapon = mount.weapon
+#			if !is_instance_valid(weapon) or weapon.destroyed or !weapon.active:
+#				continue
+#			if !mount.mount_has_valid_target(): # does it NOT have a target ?
+#				mount.set_target_for_mount(targetsArr) # if so, assign a valid target to this weapon
+#			if mount.curTarget == null: # if it still has no target, next
+#				continue
+#			mount.do_track_target()
+#			if weapon.can_fire(): # check cooldown, emp or other conditions
+#				if weapon.bursting or weapon.has_fire_solution(mount.curTarget): # do i have the right vector / rotation achieved `?
+#					weapon.handle_firing(mount.curTarget) # spawn projectile
+				
+func handleItems(_delta):
+	for n in $Items.get_children():
+		n.item_use_check_process(_delta)
+		
+func init_debug_menu_entry():
+	if debug_menu_row != null: return
+	debug_menu_row = Globals.curScene.get_node("UI/Place/Topright/AI_PC/VBoxC/HBox").duplicate()
+	Globals.curScene.get_node("UI/Place/Topright/AI_PC/VBoxC").add_child(debug_menu_row)
+	debug_menu_row.get_node("name/label").text = str("#",self.id, ": ", self.display)
+	debug_menu_row.get_node("extF/label").text = str("")
+	debug_menu_row.get_node("behavior/label").text = str($SM.state)
+	debug_menu_row.get_node("target/label").text = str(getTargetDisplay())
+	debug_menu_row.get_node("hp/label").text = str(health, "/", maxHealth)
+	update_debug_menu_entry()
+		
+func update_debug_menu_entry():
+	if debug_menu_row != null:
+		debug_menu_row.get_node("pos/label").text = str(round(position.x), " / ", round(position.y))
+		debug_menu_row.get_node("velo/label").text = str(round(velocity.length()))
+		debug_menu_row.get_node("accel/label").text = str(accel.round(), ", ", round(accel.length()))
+		debug_menu_row.get_node("extF/label").text = str(extForces.round())
+#		var keys = $UnitSM.states.keys()
+#		print(keys)
+
+func update_debug_menu_entry_on_state_change():
+	if debug_menu_row != null and is_instance_valid(debug_menu_row):
+		debug_menu_row.get_node("behavior/label").text = str($SM.states.keys()[$SM.state])
+		debug_menu_row.get_node("target/label").text = str(getTargetDisplay())
+		
+func mark_debug_menu_entry_as_killed():
+#	debug_menu_row.theme_type_variation = "label_font_red"
+	for n in debug_menu_row.get_children():
+		n.get_node("label").theme_type_variation = "label_font_red"
+#	debug_menu_row.get_node("name/label").theme_type_variation = "label_font_red"
+
+func mark_debug_menu_entry_as_removed():
+#	debug_menu_row.theme_type_variation = "label_font_red"
+	for n in debug_menu_row.get_children():
+		n.get_node("label").theme_type_variation = "label_font_yellow"
+#	debug_menu_row.get_node("name/label").theme_type_variation = "label_font_red"
+
+func updateDebugList():
+	$Debug/C/behav.rect_position = global_position + Vector2(-30, 50)
+	$Debug/C/stats.rect_position = global_position + Vector2(-30, 100)
+	$Debug/C/stats.text = str("#", id, "\n", accel.round())
+	
+	if moveTarget:
+		$Debug/moveTarget.rect_position = moveTarget - Vector2(20, 10)
+		$Debug/MoveTargetVector.points[0] = global_position
+		$Debug/MoveTargetVector.points[1] = moveTarget
+
+func getTargetDisplay():
+	if curTarget == null or not is_instance_valid(curTarget):
+		return null
+	else: return curTarget.display
+		
+func checkMoveTargetWithinBoundary():
+	if $SM.state != $SM.states.crash:
+		moveTarget.x = clamp(moveTarget.x, 300, Globals.WIDTH - 300)
+		moveTarget.y = clamp(moveTarget.y, 300, Globals.HEIGHT - 300)
+	pass
+		
+func enableAllCollisionNodes():
+	enableCollisionNodes()
+	for n in $Mounts.get_children():
+		if n.health > 0:
+			n.enableCollisionNodes()
+
+func disableAllCollisionNodes():
+	disable_col_nodes()
+	for n in $Mounts.get_children():
+		n.disable_col_nodes()
+
+func set_active():
+#	print("set active: ", self.display)
+	ready = true
+	set_physics_process(true)
+	enableWeapons()
+	enableItems()
+	enableAllCollisionNodes()
+		
+	for n in $ThrusterNodes.get_children():
+		n.visible = true
+	
+#	if debug_menu_row != null and is_instance_valid(debug_menu_row):
+#		debug_menu_row.show()
+
+	if target_indicator and is_instance_valid(target_indicator):
+		target_indicator.enable()
+		
+	$SM.do_init()
+		
+func set_inactive():
+#	print("set_inactive: ", self.display)
+	ready = false
+	set_physics_process(false)
+	disableItems()
+	disableAllCollisionNodes()
+
+	for n in $Mounts.get_children():
+		if n.has_node("Weapon"):
+			n.get_node("Weapon").doDisable()
+		
+	for n in $ThrusterNodes.get_children():
+		n.visible = false
+	
+#	if debug_menu_row != null and is_instance_valid(debug_menu_row):
+#		debug_menu_row.hide()
+
+	if target_indicator and is_instance_valid(target_indicator):
+		target_indicator.disable()
+	
+func setUnitFacing():
+	return
+	
+func set_stats():
+	stats = stats.duplicate()
+	adjust_stats_res()
+	
+	maxHealth = stats.health
+	armor = stats.armor
+	maxSpeed = stats.maxSpeed
+	minSpeed = stats.minSpeed
+	lootValue = stats.lootValue
+	sightRange = stats.sightRange
+	look_ahead = stats.look_ahead
+	num_rays = stats.num_rays
+	
+func adjust_stats_res():
+	pass
+	
+func can_warp_in():
+	return false
+		
+func setup_delayed_warp_in(time):
+	print("setup_delayed_warp_in for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames())
+	hide()
+	hide_all_control_nodes()
+	set_inactive()
+	var timer = Timer.new()
+	timer.name = "WarpInTimer"
+	$TimerNodes.add_child(timer)
+#	$Globals.curScene.add_child(timer)
+	timer.connect("timeout", self, "doDelayedWarpIn", [timer])
+	timer.wait_time = time
+	timer.start()
+	$Jump.visible = true
+	
+func setup_delayed_warp_out(time):
+	print("setup_delayed_warp_out for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames())
+	if $TimerNodes.has_node("WarpOutTimer"):
+		print("trying to delay warp out, but its already happening")
+		return false
+	
+	var timer = Timer.new()
+	timer.name = "WarpOutTimer"
+	$TimerNodes.add_child(timer)
+#	Globals.curScene.add_child(timer)
+	timer.connect("timeout", self, "_do_delayed_warp_out", [timer])
+	timer.wait_time = time
+	timer.start()
+
+func doDelayedWarpIn(timer):
+	timer.queue_free()
+	doWarpIn()
+	
+func doWarpIn():
+	warpInStepOne()
+
+func warpInStepOne():
+	isWarping = true
+	$Jump.scale = Vector2.ZERO
+
+	var durIn = 1.0 * Globals.mod / 5
+	var tween = get_tree().create_tween()
+	
+	tween.tween_property($Jump, "scale", Vector2(10, 1), durIn)
+	tween.tween_property($Jump, "scale", Vector2(20, 15), durIn)
+	tween.tween_callback(self, "warp_in_phase_two")
+
+func warp_in_phase_two():
+	show()
+	$Sprites.scale = Vector2.ZERO
+	$Sprites.modulate.a = 0.0
+	$Mounts.scale = Vector2.ZERO
+	$Mounts.modulate.a = 0.0
+	$ThrusterNodes.visible = true
+	$Mounts.visible = true
+
+	var durOut = 1.0 * Globals.mod / 5
+	var tween = get_tree().create_tween().set_parallel(true)
+
+	tween.tween_property($Jump, "scale", Vector2(0, 0), durOut)
+	tween.tween_property($Sprites, "scale", Vector2(1, 1), durOut/2)
+	tween.tween_property($Sprites, "modulate:a", 1.0, durOut)
+	tween.tween_property($Mounts, "scale", Vector2(1, 1), durOut/2)
+	tween.tween_property($Mounts, "modulate:a", 1.0, durOut)
+	tween.set_parallel(false)
+	tween.tween_callback(self, "on_warp_in_done")
+	
+func on_warp_in_done():
+#	print(self.display, ": on_warp_in_done")
+	emit_signal("_has_warped_in")
+	isWarping = false
+	$Jump.scale = Vector2(1, 1)
+	$Jump.visible = false
+	$Jump.modulate.a = 1
+	
+	set_active()
+	show_all_control_nodes()
+#	enableWeapons()
+#	enableItems()
+	
+	if lifetime > 0.0:
+		$TimerNodes.get_node("rem_lifetime").start()
+		$ControlNodes.get_node("rem_lifetime_label").isUpdating = true
+		
+func doDisableShield():
+	$Mounts/A/.get_child(0).unpowerShield()
+	
+func cancelWarpOut():
+	print("cancelWarpOut")
+		
+func _do_delayed_warp_out(timer):
+	print("_do_delayed_warp_out on ", self.display, ", frame ", Engine.get_idle_frames())
+	timer.queue_free()
+	warp_out_phase_one()
+	
+func warp_out_phase_one():
+#	print("warp_out_phase_one")
+	if $TimerNodes.has_node("WarpOutTimer"):
+		$TimerNodes.get_node("WarpOutTimer").queue_free()
+		
+	isWarping = true
+	$Jump.visible = true
+	do_unselect_all_weapons()
+	hide_all_control_nodes()
+	
+	var durOut = 1.0 * Globals.mod / 5
+	var tween = get_tree().create_tween()
+	
+	tween.tween_property($Jump, "scale", Vector2(20, 15), durOut)
+	tween.tween_callback(self, "warp_out_phase_two")
+	
+func warp_out_phase_two():
+#	print("warp_out_phase_two")
+	$EffectNodes.visible = false
+	$ThrusterNodes.visible = false
+	$Mounts.visible = false
+	
+	var durIn = 2.0 * Globals.mod / 5
+	var durOut = 1.0 * Globals.mod / 5
+	var tween = get_tree().create_tween().set_parallel(true)
+	
+	tween.tween_property($Jump, "scale", Vector2(10, 1), durIn)
+	tween.tween_property($Sprites, "modulate:a", 0.0, durOut)
+	tween.tween_property($Sprites, "scale", Vector2(0, 0), durOut/2)
+	tween.tween_property($Mounts, "modulate:a", 0.0, durOut)
+	tween.tween_property($Mounts, "scale", Vector2(0, 0), durOut/2)
+	tween.set_parallel(false)
+	tween.tween_callback(self, "warp_out_phase_three")
+	
+func warp_out_phase_three():
+#	print("warp_out_phase_three")
+	var durIn = 2.0 * Globals.mod / 5
+	var tween = get_tree().create_tween()
+	
+	tween.tween_property($Jump, "scale", Vector2(0, 0), durIn)
+	tween.tween_callback(self, "on_warp_out_done")
+	
+func on_warp_out_done():
+	print(self.display, ": on_warp_out_done")
+	isWarping = false
+	
+	set_inactive()
+	unload_items()
+	hideDebug()
+	velocity = Vector2.ZERO
+	extForces = Vector2.ZERO
+	accel = Vector2.ZERO
+	
+	$Mounts.modulate.a = 1.0
+	$Mounts.scale = Vector2(1, 1)
+	
+	unmark_as_target()
+	unmark_as_protect()
+		
+#	if isPlayer:
+#		Globals.MAP_SCENE.selected_node.mission_class.logic.set_mission_condition_success()
+		
+	emit_signal("_has_warped_out")
+	
+func show_all_control_nodes():
+	if not isPlayer and has_node("ControlNodes"):
+		has_ControlNodes = true
+		for n in $ControlNodes.get_children():
+			n.show()
+		for mount in $Mounts.get_children():
+			mount.show_control_nodes()
+			if mount.has_node("Weapon"):
+				mount.get_node("Weapon").show_control_nodes()
+
+func hide_all_control_nodes():
+	if not isPlayer and has_node("ControlNodes"):
+		has_ControlNodes = false
+		for n in $ControlNodes.get_children():
+			n.hide()
+		for mount in $Mounts.get_children():
+			mount.hide_control_nodes()
+			if mount.has_node("Weapon"):
+				mount.get_node("Weapon").hide_control_nodes()
+	
+func unload_items():
+	for n in items:
+		n.do_unload()
+	
+func getSelfSpawnPosition(viewFrom, viewTo):
+#	print("getSpawnPos Base")
+#	print(viewFrom, viewTo)
+	var x = getSpawnX(viewFrom, viewTo)
+	var y = getSpawnY(viewFrom, viewTo)
+	return Vector2(x, y)
+	
+func getSpawnX(viewFrom, viewTo):
+	var xRng = Globals.rng.randi_range(100, 600)
+	var dir = Globals.getRandomEntry([-1, 1])
+	var x = 0
+	if dir == -1:
+		x = viewFrom.x - xRng
+	else: x = viewTo.x + xRng
+	x = clamp(x, 300, Globals.WIDTH-300)
+	return x
+	
+func getSpawnY(_viewFrom, _viewTo):
+	var variance = 400
+	var y = Globals.HEIGHT/2 + Globals.rng.randi_range(-variance, variance)
+	return y
+
+func set_direction(dirVector:Vector2 = Vector2.ZERO):
+	if dirVector:
+		direction = dirVector
+	else:
+		direction = Vector2(Globals.getRandomEntry([-1, 1]), 0)
+	
+	if direction == Vector2(-1, 0):
+		direction *= -1
+		do_turnaround()
+		
+	#print(self.display, " set dir to ", direction)
+	
+func do_turnaround():
+#	print(self.display, " #", id, ": do_turnaround")
+	direction *= -1
+	$Sprites/Main.flip_h = !$Sprites/Main.flip_h
+	mirrorTurrets()
+	mirrorThrusters()
+	mirrorVarious()
+	mirrorColNodes()
+	
+func mirrorTurrets():
+	for n in $Mounts.get_children():
+		n.position.x *= -1
+		n.rotation *= -1
+		n.get_node("Sprites/Main").flip_h = !n.get_node("Sprites/Main").flip_h
+
+		if n.weapon:
+#			print(n.weapon.rotation_degrees)
+			n.weapon.rotation_degrees = mirror_horizontal(n.weapon.rotation_degrees)
+			n.weapon.current_rot_v = Vector2.RIGHT.rotated(deg2rad(n.weapon.rotation_degrees))
+			
+func mirror_horizontal(angle: float) -> float:
+	return wrapf(180.0 - angle, -180.0, 180.0)
+	
+
+func xmirrorTurrets():
+	for n in $Mounts.get_children():
+		n.position.x *= -1
+		if n.weapon:
+			n.weapon.arc_midpoint_v.x *= -1
+			n.weapon.current_rot_v.x *= -1
+			n.weapon.rotation = n.weapon.current_rot_v.angle()
+			n.get_node("DebugAim/Start").scale.x *= -1
+			n.get_node("DebugAim/End").scale.x *= -1
+		
+func mirrorThrusters():
+	for n in $ThrusterNodes.get_children():
+		n.position.x *= -1
+		if n.rotation == 0:
+			n.get_node("Particle2D").process_material.initial_velocity *= -1
+		
+func toggleThrusters():
+	for n in $ThrusterNodes.get_children():
+		n.visible = !n.visible
+		
+func mirrorVarious():
+	for node in $EffectNodes.get_children():
+		node.position.x *= -1
+
+func mirrorColNodes():
+	if $Sprites/Main.flip_h == true:
+		$ColNodes.rotation = -(2*rotation)
+	else: $ColNodes.rotation = 0
+
+func set_armaments():
+#	print("set_armaments")
+	var index = 0
+	for mount in $Mounts.get_children():
+		Globals.set_faction(mount, faction)
+		var weapon = getPossibleWeapons(index)
+		index += 1
+		if weapon:
+			weapon.shooter = self
+			weapon.do_init_weapon()
+			mount.add_weapon(weapon)
+		mount.do_init_mount()
+		
+	randomizeWeaponStartCooldown()
+	addSightCollision()
+	addStartingItems()
+	
+func addStartingItems():
+	pass
+	
+func getPossibleWeapons(_index):
+	return
+	
+func _on_support_duration_timeout(timer):
+	print("_on_support_duration_timeout")
+	timer.stop()
+	warp_out_phase_one()
+
+func getDummyTarget(xa, xb, ya, yb):
+	#var x = Globals.getRandomEntry([-1, 1])
+	var x = Globals.getRandomEntry([xa, xb])
+	var y = Globals.getRandomEntry([ya, yb])
+	var angle = Globals.rng.randi_range(-10, 10)
+	var dist = self.speed * 3
+	var vector = Vector2(x, y).rotated(deg2rad(angle)) * dist
+	var targetPos = global_position + vector
+	
+	var tresh = 250
+	
+	if targetPos.y < tresh:
+		targetPos.y = tresh*2
+	elif targetPos.y > Globals.HEIGHT - tresh:
+		targetPos.y = Globals.HEIGHT - tresh*2
+	
+	if targetPos.x < tresh:
+		targetPos.x = tresh*2
+	elif targetPos.x > Globals.WIDTH - tresh:
+		targetPos.x = Globals.WIDTH - tresh*2
+	
+	curTarget = Globals.DUMMY.instance()
+	curTarget.position = targetPos
+	Globals.curScene.add_child(curTarget)
+	return curTarget
+	
+func checkAggro(shooterObj):
+	if not shooterObj: return
+#	print("shot by: ", shooter.display, " #", shooter.id)
+#	print("my target is: ", target.display, " #", target.id)
+#	print(shooter.display)
+#	print(self.display)
+	if curTarget == null: #and shooter.id != target.id:
+		#print("aggroed")
+		curTarget = shooterObj
+
+func create_currency():
+	var perInstance = 1
+	var total = self.lootValue / perInstance
+	for n in total:
+		var currency = Globals.CURRENCY.instance()
+		Globals.curScene.get_node("Various").add_child(currency)
+		currency.do_init_unit()
+		currency.position = global_position + Vector2(Globals.rng.randi_range(-texDim.x/2, texDim.x/2), Globals.rng.randi_range(-texDim.y/2, texDim.y/2))
+		currency.rotation_degrees = Globals.rng.randi_range(0, 359)
+		currency.velocity = Vector2(500, 0).rotated(currency.rotation)
+		currency.resValue = perInstance
+		currency.curTarget = player
+	
+func setWrecked():
+	health = Globals.rng.randi_range(ceil(maxHealth*0.1), ceil(maxHealth * 0.3))
+	destroyed = true
+	for n in $Mounts.get_children():
+		n.kill()
+#
+func kill_by_crash():
+	return
+	
+func get_class():
+	return str("Unit_Base")
+	
+func isLegalTarget():
+	if destroyed or not ready or indestructable:
+		return false
+	return true
+	
+func applyForce(force):
+#	print("applying force on ", self.display, ": ", force/mass)
+	extForces += force/mass
+	
+func remove_cur_target_set_new_target():
+#	print(self.display, ": remove_cur_target_set_new_target()")
+	remove_cur_target()
+	set_new_target()
+
+func remove_cur_target():
+#	print("remove_cur_target from ", self.display, " #", get_instance_id())
+	for n in targetsArr:
+		if curTarget == n.target:
+			targetsArr.erase(n)
+			curTarget = null
+			if forcedLock:
+				forcedLock = false
+			break
+	for n in $Mounts.get_children():
+		if n.has_node("Weapon"):
+			n.curTarget = null
+			if n.forcedLock:
+				n.forcedLock = false
+
+func set_new_target():
+#	print("set_new_target on ", self.display, " #", get_instance_id())
+	
+	if not targetsArr.size():
+		state_m.set_state(state_m.states.wander)
+#		print("no targets!")
+		return
+	
+	var prio:int = 10
+	var curPrio:int = 0
+	var changed:bool = false
+	
+	if curTarget != null:
+		for n in targetsArr:
+			if curTarget == n.target:
+				curPrio = n.prio
+				
+		for n in targetsArr:
+			if n.prio < curPrio and n.prio < prio:
+				changed = true
+				curTarget = n.target
+				prio = n.prio
+	else:
+		changed = true
+		for n in targetsArr:
+			if n.prio < prio:
+				curTarget = n.target
+				prio = n.prio
+#				print("targeting: ", curTarget.display, " #", curTarget.get_instance_id())
+
+	if changed:
+		state_m.set_state(state_m.states.close)
+
+func _on_Sight_area_entered(area):
+#	print(self.display, ", target: ", area.owner.display, " has LEFT sight !")
+	if area.owner.isObstacle or self == area.owner or self.faction == area.owner.faction:
+		return
+	for n in targetsArr:
+		if n.target == area.owner:
+			return
+#	print(self.display, ": adding ", area.owner.display, " to targets")
+	targetsArr.append({"target": area.owner, "prio": 1})
+	set_new_target()
+
+func _on_Sight_area_exited(area):
+#	print(self.display, ", target: ", area.owner.display, " has ENTERED sight !")
+	for n in targetsArr:
+		if area.owner == n.target:
+			if n.prio != 0:
+#				print("deleting from targets")
+				targetsArr.erase(n)
+			return
+			
+func _on_AggroLeave_area_exited(area):
+	var index = -1
+	for n in targetsArr:
+		index += 1
+		if n == area.owner:
+			break
+	
+	if index > -1:
+		targetsArr.erase(area.owner)
+		
+func do_unselect_all_weapons():
+	return "ERROR do_unselect_all_weapons"
+	
+func disableItemsAndWeapons():
+	return "ERROR disableItemsAndWeapons"	
+	
+func enableWeapons():
+	for n in $Mounts.get_children():
+		if n.has_node("Weapon"):
+			n.get_node("Weapon").doEnable()
+#	getActiveWeapon().doSelect()
+
+func disableWeapons():
+	for n in $Mounts.get_children():
+		if n.has_node("Weapon"):
+			n.get_node("Weapon").doDisable()
+
+func enableItems():
+	if Globals.curScene.get_class() != "Intermission":
+		for n in $Items.get_children():
+			n.doEnable()
+			n.doReset()
+
+func disableItems():
+	for n in $Items.get_children():
+		n.doDisable()
+	
+func getActiveWeapon():
+	return "ERROR getActiveWeapon"
+
+func getDangerValue():
+	return 3.0
+
+func initSteering():
+	interest.resize(num_rays)
+	danger.resize(num_rays)
+	ray_directions.resize(num_rays)
+	ray_degree.resize(num_rays)
+	for i in num_rays:
+		var angle = i * 2 * PI / num_rays
+		ray_directions[i] = Vector2.RIGHT.rotated(angle)
+		ray_degree[i] = rad2deg(angle)
+		
+		if Globals.MOVEDEBUG:
+			var line = Line2D.new()
+			line.name = str(i)
+			line.width = 2
+			line.default_color = Color(0, 0, 0, 1)
+			line.add_point(Vector2.ZERO)
+			line.add_point(Vector2.RIGHT.rotated(angle) * look_ahead)
+			line.name = str("steer_choice", i)
+			$Debug/steering_input.add_child(line)
+
+func set_interest():
+	if moveTarget:
+		var path_direction: Vector2 = (moveTarget - global_position).normalized()
+		for i in num_rays:
+			var d = ray_directions[i].rotated(rotation).dot(path_direction)
+			interest[i] = max(0, d)
+	else:
+		set_default_interest()
+		
+func set_default_interest():
+	for i in num_rays:
+#		var d = ray_directions[i].rotated(rotation).dot(transform.x)
+		interest[i] = 0
+
+func set_danger():
+	if $SM.state != $SM.states.crash: 
+		var space_state = get_world_2d().direct_space_state
+		for i in num_rays:
+			var cast = space_state.intersect_ray(
+				position,
+				position + ray_directions[i].rotated(rotation) * look_ahead, [self], 0b10000, false, true
+			)
+			if cast:
+				danger[i] = getDangerValueFromEntity(cast.collider.owner.display)
+				if danger[i] == null:
+	#				print("NULL VALUE ", self.display, " raycast into ", cast.collider.owner.display)
+					danger[i] = 0.0
+			else:
+				danger[i] = 0.0
+
+func choose_direction():
+	dir_update_frames -= 1
+	if dir_update_frames > 0:
+		return
+	
+	dir_update_frames = 12
+		
+	for i in num_rays:
+		if danger[i] > 0.0:
+			interest[i] -= danger[i]
+		
+	chosen_dir = Vector2.ZERO
+	for i in num_rays:
+		chosen_dir += ray_directions[i] * interest[i]
+	chosen_dir = chosen_dir.normalized()
+	
+	if Globals.MOVEDEBUG:
+		for i in num_rays:
+			$Debug/steering_input.get_child(i).default_color = Color(0, 0, 0, 1)
+			if danger[i] > 0.0:
+				$Debug/steering_input.get_child(i).default_color = Color(1, 0, 0, 1)
+			$Debug/steering_input.get_child(i).points[1] = ray_directions[i] * look_ahead * interest[i]
+	
+func getDangerValueFromEntity(targetDisplay):
+	if targetDisplay in avoidValues:
+		return avoidValues[targetDisplay]
+	return 0.0
+	
+func getFuturePosition(time):
+	return global_position + velocity * time
+	
+func disable_boosting():
+	return
+	
+func disableAllThrusterParticles():
+	disable_boosting()
+	for n in $ThrusterNodes.get_children():
+		n.get_node("Particle2D").emitting = false
+
+func enableAllThrusterParticles():
+	for n in $ThrusterNodes.get_children():
+		n.get_node("Particle2D").emitting = true
+	$ThrusterNodes/Aft_Boost/Particle2D.emitting = false
+
+func hasNoTargetSet():
+	if curTarget == null or not is_instance_valid(curTarget) or curTarget.destroyed or curTarget.ready == false:
+		return true
+	return false
+
+func _on_target_has_warped_out(target):
+	print(self.display, ": my target has warped out")
+	for n in targetsArr:
+		if n.target == target:
+			targetsArr.erase(n)
+	set_new_target()
+	
+	if rand_range(0, 1) > 0:
+		setup_delayed_warp_out(4.0)
+
+func init_as_attacker():
+	$SM.set_state($SM.states.close)
+
+func add_primary_target(primTarget):
+	print("add_primary_target on ", self.display, " #", id, ": target ", primTarget.display, " #", primTarget.id)
+	targetsArr.append({"target": primTarget, "prio": 0})	
+	return
+	
+func get_item(string):
+	for n in $Items.get_children():
+		if n.display == string:
+			return n	
+	
+func update_stats():
+	return
+	
+func addItem(item):
+	if not item:
+		print("ERROR ITEM NOT FOUND")
+		return
+	item.faction = faction
+	item.position = Vector2(0, 0)
+	$Items.add_child(item)
+	item.set_owner(self)
+	items.append(item)
+	item.do_init_item(isPlayer)
+	addItemToUI(item)
+	item.makeInvisible()
+	update_stats()
+	
+func addItemToUI(item):
+	return false
+
+func add_health_bar(size:float = 1.0):
+	.add_health_bar(size)
+	healthbar.offset.y = texDim.y * 0.8 + 20
+	
+func enterBoundary():
+	toching_bound = true
+	gravity_vec = Vector2.ZERO
+	
+func exitBoundary():
+	toching_bound = false
+	gravity_vec = Globals.BASEGRAVITY
+	
+func has_active_omni_shield():
+	if $Mounts.get_children():
+		if $Mounts/A.get_child(0) is Weapon_Shield_Omni:
+			if $Mounts/A.get_child(0).shield > 0:
+				return true
+		
+	return false
+	
+#	if is_in_group("isUnit") and $Mounts.get_children() and $Mounts/A.get_child(0).get_class() == "Weapon_Shield_Omni" and $Mounts/A.get_child(0).shield > 0:
+##		print("active omni, making ram illegal")
+#		return true
+#	return false

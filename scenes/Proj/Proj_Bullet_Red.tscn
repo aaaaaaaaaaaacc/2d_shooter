@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=2]
+
+[ext_resource path="res://textures/bullet_01.png" type="Texture" id=1]
+[ext_resource path="res://textures/bullet_00.png" type="Texture" id=2]
+[ext_resource path="res://scenes/Proj/Proj_Bullet.tscn" type="PackedScene" id=3]
+
+[sub_resource type="SpriteFrames" id=3]
+animations = [ {
+"frames": [ ExtResource( 2 ), ExtResource( 1 ) ],
+"loop": true,
+"name": "default",
+"speed": 15.0
+} ]
+
+[sub_resource type="RectangleShape2D" id=2]
+extents = Vector2( 7, 3 )
+
+[node name="Bullet" instance=ExtResource( 3 )]
+modulate = Color( 0, 0, 0, 1 )
+
+[node name="Sprite" parent="Sprites" index="0"]
+modulate = Color( 1, 1, 1, 1 )
+self_modulate = Color( 1, 1, 1, 1 )
+
+[node name="Main" parent="Sprites" index="1"]
+visible = false
+frames = SubResource( 3 )
+playing = true
+
+[node name="A" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="0"]
+shape = SubResource( 2 )

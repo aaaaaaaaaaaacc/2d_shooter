@@ -1,0 +1,74 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://textures/weapons/png/Test_PNG.png" type="Texture" id=2]
+[ext_resource path="res://textures/cooldown.png" type="Texture" id=4]
+
+[node name="Core" type="PanelContainer"]
+margin_right = 132.0
+margin_bottom = 85.0
+rect_min_size = Vector2( 132, 85 )
+mouse_filter = 1
+
+[node name="Tween" type="Tween" parent="."]
+pause_mode = 1
+
+[node name="PC" type="PanelContainer" parent="."]
+margin_left = 10.0
+margin_top = 8.0
+margin_right = 122.0
+margin_bottom = 77.0
+mouse_filter = 1
+theme_type_variation = "Panel_Inner"
+
+[node name="CDProgress" type="TextureProgress" parent="PC"]
+modulate = Color( 1, 1, 1, 0.490196 )
+margin_left = 2.0
+margin_top = 2.0
+margin_right = 110.0
+margin_bottom = 67.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture_progress = ExtResource( 4 )
+fill_mode = 3
+nine_patch_stretch = true
+
+[node name="VB" type="VBoxContainer" parent="PC"]
+margin_left = 2.0
+margin_top = 2.0
+margin_right = 110.0
+margin_bottom = 67.0
+alignment = 1
+
+[node name="Tex" type="TextureRect" parent="PC/VB"]
+margin_right = 108.0
+margin_bottom = 56.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture = ExtResource( 2 )
+expand = true
+stretch_mode = 6
+
+[node name="HB" type="HBoxContainer" parent="PC/VB"]
+margin_top = 60.0
+margin_right = 108.0
+margin_bottom = 65.0
+rect_min_size = Vector2( 0, 5 )
+alignment = 1
+
+[node name="Charge" type="ColorRect" parent="PC/VB/HB"]
+margin_right = 108.0
+margin_bottom = 5.0
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+color = Color( 0, 1, 0, 1 )
+
+[node name="Cooldown_flash_panel" type="PanelContainer" parent="."]
+modulate = Color( 1, 1, 1, 0 )
+margin_left = 10.0
+margin_top = 8.0
+margin_right = 122.0
+margin_bottom = 77.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_type_variation = "panel_white"

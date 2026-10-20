@@ -1,0 +1,21 @@
+extends Ground_Vehicle
+class_name Jeep
+
+var display = "Jeep"
+
+func _ready():
+	pass
+
+func _physics_process(_delta):
+	pass
+	
+func set_direction(_dirVector = false):
+	pass
+
+func getPossibleWeapons(index):
+#	var weapon = Globals.getWeaponBase("Light Missile");
+#	weapon.makeInvisible()
+	var weapon = Globals.getWeaponBase("Light Machinegun");
+#	weapon.makeInvisible()
+	
+	return weapon

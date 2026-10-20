@@ -1,0 +1,44 @@
+[gd_scene load_steps=10 format=2]
+
+[ext_resource path="res://scripts/Units/Unit_Arty.gd" type="Script" id=1]
+[ext_resource path="res://textures/arty_01.png" type="Texture" id=2]
+[ext_resource path="res://scenes/Units/Unit_Base.tscn" type="PackedScene" id=3]
+[ext_resource path="res://scenes/Mount.tscn" type="PackedScene" id=4]
+[ext_resource path="res://resources/Arty.tres" type="Resource" id=5]
+[ext_resource path="res://sm/SM.tscn" type="PackedScene" id=6]
+[ext_resource path="res://sm/Mobile_AA_H_SM.gd" type="Script" id=7]
+
+[sub_resource type="RectangleShape2D" id=1]
+extents = Vector2( 12, 18 )
+
+[sub_resource type="RectangleShape2D" id=2]
+extents = Vector2( 10.25, 6.75 )
+
+[node name="Arty" instance=ExtResource( 3 )]
+script = ExtResource( 1 )
+stats = ExtResource( 5 )
+num_rays = 2
+
+[node name="SM" parent="." index="0" instance=ExtResource( 6 )]
+script = ExtResource( 7 )
+
+[node name="Main" parent="Sprites" index="0"]
+scale = Vector2( 0.8, 0.8 )
+texture = ExtResource( 2 )
+
+[node name="VisibilityNotifier2D" parent="." index="4"]
+position = Vector2( -0.250002, 0.1422 )
+scale = Vector2( 2.825, 1.18578 )
+
+[node name="A" parent="Mounts" index="0" instance=ExtResource( 4 )]
+maximum_rotation = 45.0
+startAngle = -45
+
+[node name="A" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="0"]
+position = Vector2( -10, -1.19209e-07 )
+rotation = 1.5708
+shape = SubResource( 1 )
+
+[node name="B" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="1"]
+position = Vector2( 19.25, 5.75 )
+shape = SubResource( 2 )

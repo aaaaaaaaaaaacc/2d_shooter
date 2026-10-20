@@ -1,0 +1,130 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://scenes/GFX_settings.tscn" type="PackedScene" id=1]
+[ext_resource path="res://ui/Pause.gd" type="Script" id=2]
+[ext_resource path="res://default_theme.tres" type="Theme" id=3]
+[ext_resource path="res://ui/PanelItemStats.tscn" type="PackedScene" id=4]
+
+[node name="Pause_details" type="PanelContainer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_type_variation = "PanelCont_Empty"
+script = ExtResource( 2 )
+__meta__ = {
+"_edit_horizontal_guides_": [ -58.0 ]
+}
+
+[node name="MC" type="MarginContainer" parent="."]
+margin_left = 393.0
+margin_top = 248.0
+margin_right = 1527.0
+margin_bottom = 832.0
+size_flags_horizontal = 4
+size_flags_vertical = 4
+custom_constants/margin_right = 15
+custom_constants/margin_top = 15
+custom_constants/margin_left = 15
+custom_constants/margin_bottom = 15
+
+[node name="VBC" type="VBoxContainer" parent="MC"]
+margin_left = 15.0
+margin_top = 15.0
+margin_right = 1119.0
+margin_bottom = 569.0
+
+[node name="HBC" type="HBoxContainer" parent="MC/VBC"]
+margin_right = 1104.0
+margin_bottom = 500.0
+rect_min_size = Vector2( 800, 300 )
+theme = ExtResource( 3 )
+
+[node name="PanelItemStats" parent="MC/VBC/HBC" instance=ExtResource( 4 )]
+margin_right = 200.0
+margin_bottom = 500.0
+rect_min_size = Vector2( 200, 0 )
+size_flags_horizontal = 3
+
+[node name="PC" type="PanelContainer" parent="MC/VBC/HBC"]
+margin_left = 204.0
+margin_right = 1104.0
+margin_bottom = 500.0
+rect_min_size = Vector2( 900, 500 )
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBC" type="VBoxContainer" parent="MC/VBC/HBC/PC"]
+margin_left = 10.0
+margin_top = 8.0
+margin_right = 890.0
+margin_bottom = 492.0
+
+[node name="Label" type="Label" parent="MC/VBC/HBC/PC/VBC"]
+margin_right = 880.0
+margin_bottom = 17.0
+theme = ExtResource( 3 )
+text = "Software and Hardware Upgrades"
+align = 1
+
+[node name="HS" type="HSeparator" parent="MC/VBC/HBC/PC/VBC"]
+margin_top = 21.0
+margin_right = 880.0
+margin_bottom = 26.0
+size_flags_stretch_ratio = 0.0
+custom_constants/separation = 5
+
+[node name="HBC" type="GridContainer" parent="MC/VBC/HBC/PC/VBC"]
+margin_top = 30.0
+margin_right = 880.0
+margin_bottom = 484.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 4
+
+[node name="PC" type="PanelContainer" parent="MC/VBC"]
+margin_top = 504.0
+margin_right = 1104.0
+margin_bottom = 554.0
+rect_min_size = Vector2( 0, 50 )
+
+[node name="HBC2" type="HBoxContainer" parent="MC/VBC/PC"]
+margin_left = 10.0
+margin_top = 8.0
+margin_right = 1094.0
+margin_bottom = 42.0
+size_flags_horizontal = 3
+custom_constants/separation = 70
+
+[node name="HBC" type="HBoxContainer" parent="MC/VBC/PC/HBC2"]
+margin_left = 115.0
+margin_right = 355.0
+margin_bottom = 34.0
+size_flags_horizontal = 6
+custom_constants/separation = 50
+
+[node name="Unpause" type="Button" parent="MC/VBC/PC/HBC2/HBC"]
+margin_right = 120.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 120, 0 )
+theme = ExtResource( 3 )
+text = "UNPAUSE"
+
+[node name="Quit" type="Button" parent="MC/VBC/PC/HBC2/HBC"]
+margin_left = 170.0
+margin_right = 240.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 70, 0 )
+theme = ExtResource( 3 )
+text = "QUIT"
+
+[node name="VSeparator" type="VSeparator" parent="MC/VBC/PC/HBC2"]
+margin_left = 540.0
+margin_right = 544.0
+margin_bottom = 34.0
+
+[node name="GFX_settings" parent="MC/VBC/PC/HBC2" instance=ExtResource( 1 )]
+
+[connection signal="visibility_changed" from="." to="." method="_on_PC_visibility_changed"]
+[connection signal="pressed" from="MC/VBC/PC/HBC2/HBC/Unpause" to="." method="_on_Unpause_pressed"]
+[connection signal="pressed" from="MC/VBC/PC/HBC2/HBC/Quit" to="." method="_on_Quit_pressed"]
