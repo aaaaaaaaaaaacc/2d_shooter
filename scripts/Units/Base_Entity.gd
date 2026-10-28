@@ -279,6 +279,30 @@ func next_frame_enableCollisionNodes():
 		$Phys.set("monitorable", true)
 		for n in $Phys.get_children():
 			n.disabled = false
+			
+func remove():
+	if has_node("Tween"):
+		if $Tween.is_active(): 
+			$Tween.stop_all()
+			$Tween.remove_all()
+	
+	if has_node("TimerNodes"):
+		if $TimerNodes.has_node("WarpOutTimer"):
+			$TimerNodes/WarpOutTimer.stop()
+			cancelWarpOut()
+	if has_node("EffectNodes"):
+		for n in $EffectNodes.get_children():
+			if n.delay > 0:
+				n.delay = -1.0
+	
+	mark_debug_menu_entry_as_killed()
+	hide_control_nodes()
+	stop_upcoming_effect_nodes()
+	
+	if is_target:
+		unmark_as_target()
+	elif is_protect:
+		unmark_as_protect()
 
 func kill():
 	if isPlayer or destroyed or indestructable:
@@ -294,31 +318,7 @@ func kill():
 	for n in $Mounts.get_children():
 		n.kill()
 		
-	if has_node("Tween"):
-		if $Tween.is_active(): 
-			$Tween.stop_all()
-			$Tween.remove_all()
-	
-	if has_node("TimerNodes"):
-		if $TimerNodes.has_node("WarpOutTimer"):
-			$TimerNodes/WarpOutTimer.stop()
-			cancelWarpOut()
-	if has_node("EffectNodes"):
-		for n in $EffectNodes.get_children():
-			if n.delay > 0:
-				print("Ding")
-				n.delay = -1.0
-	
-	hide_control_nodes()
-	stop_upcoming_effect_nodes()
-
-	if debug_menu_row != null:
-		mark_debug_menu_entry_as_killed()
-	
-	if is_target:
-		unmark_as_target()
-	elif is_protect:
-		unmark_as_protect()
+	remove()
 		
 	create_final_kill_explos()
 		

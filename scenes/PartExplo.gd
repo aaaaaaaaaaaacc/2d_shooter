@@ -3,6 +3,7 @@ extends Node2D
 var remLifeTime:float = 0.0
 var delay:float = 0.0
 var offset:Vector2 = Vector2.ZERO
+var is_explosion:bool = true
 
 func _ready():
 #	print("ready explo")

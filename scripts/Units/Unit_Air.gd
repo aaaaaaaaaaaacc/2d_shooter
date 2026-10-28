@@ -5,6 +5,9 @@ var crashing := false
 var crash_velocity := Vector2.ZERO
 var crash_rotation_speed := 0.0
 var crash_rotation_accel := 0.0
+var crash_start_rotation_degrees := 0.0
+var crash_tilt_degrees := 0.0
+var crash_rotation_direction := 1.0
 
 var crash_test:bool = false
 

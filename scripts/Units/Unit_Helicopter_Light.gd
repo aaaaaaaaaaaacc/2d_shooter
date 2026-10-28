@@ -3,8 +3,8 @@ class_name Helicopter_Light
 
 const CRASH_GRAVITY := 30.0
 const CRASH_DRAG := 0.995
-const CRASH_ROT_ACCEL_MIN := 0.3
-const CRASH_ROT_ACCEL_MAX := 0.5
+const CRASH_ROT_ACCEL_MIN := 0.1
+const CRASH_ROT_ACCEL_MAX := 0.2
 const CRASH_ROT_SPEED_MAX := 10.0
 
 var display = "Helicopter_Light"
@@ -25,7 +25,6 @@ func process_movement(_delta):
 func do_turnaround():
 #	$Sprites/Main.flip_h = !$Sprites/Main.flip_h
 	mirrorTurrets()
-
 	mirrorVarious()
 	mirrorColNodes()
 	mirrorSprite()
@@ -82,8 +81,7 @@ func crash_step_two():
 
 	# Preserve momentum, but reduce it for the damaged ship.
 	crash_velocity = velocity * 0.8
-	crash_velocity.y *= 0.5
-	crash_velocity.y *= 4
+	crash_velocity.y *= 2
 
 	# Ensure a minimum downward falling speed.
 	crash_velocity.y = max(crash_velocity.y, 10.0)
@@ -91,6 +89,7 @@ func crash_step_two():
 	velocity = Vector2.ZERO
 
 	# Pick a spin direction based on the ship's travel direction.
+#	var spin_direction = sign(crash_velocity.x)
 	var spin_direction = sign(direction.x)
 	if spin_direction == 0:
 		spin_direction = 1.0

@@ -4,6 +4,7 @@ class_name Handler_Spawn
 const currency = preload("res://scenes/Utilities/Currency.tscn")
 
 enum UnitType {
+	FRIGATE,
 	TRUCK_LIGHT,
 	TRUCK_HEAVY,
 	JEEP,
@@ -12,7 +13,7 @@ enum UnitType {
 	HELI_HEAVY,
 	FIGHTER,
 	BOMBER,
-	FRIGATE,
+#	FRIGATE,
 	DESTROYER,
 	CRUISER,
 	AA_TOWER,
@@ -160,6 +161,23 @@ func getSpawnOutsideView(enemy):
 	return enemy.getSelfSpawnPosition(from, to)
 	
 func get_raw_unit_data_for_mission():
+	
+	var return_data:Array = []
+	
+	for unit in UnitType:
+		var dict = {
+			"type": UnitType[unit],
+			"name": "",
+			"amount": 0,
+			"tresh": 3,
+			"strength": 3, 
+			"weight": 6,
+			"legal": false
+			
+		}
+		return_data.append(dict)
+	return return_data
+	
 	return [
 		#{"type": truck, "tresh": 1, "amount": 0, "strength": 1, "weight": 10},
 		{"const": "FIGHTER", "legal": false, "tresh": 0, "amount": 0, "strength": 3, "weight": 6},
@@ -170,6 +188,7 @@ func get_raw_unit_data_for_mission():
 		{"const": "DESTROYER", "legal": false, "tresh": 55, "amount": 0, "strength": 7, "weight": 1},
 	]
 	
+
 func use_mission_spawn_data():
 	unitData = mission_unit_data
 	
@@ -238,14 +257,21 @@ func adjustWaveDataByMission():
 		for entry in unitData:
 			if entry.display == "Jeep":
 				entry.legal = false
-#func create_initial_wave():
+				
+				
 	
+#raid_target_group.append({"type": handler_s.UnitType.CARGO_HAULER, "name": "CARGO_HAULER", "amount": Globals.rng.randi_range(1, 1), "target": true})
+
+#var target_unit = handler_s.get_unit_instance(unit.type)
+#allUnits.append(target_unit)
+#Globals.add_unit_to_scene(target_unit, Globals.Faction.hostile)
+
 func spawn_all_from_pool():
 	for element in unitData:
 		var amount = element["amount"]
 		for i in amount:
 			element["amount"] -= 1
-			var unit = get(element.const).instance()
+			var unit = get_unit_instance(element.type)
 			unit.set_wave_strength(element.strength)
 			enemy_str_cur += unit.wave_strength
 			spawn_and_init_unit(unit)
@@ -254,29 +280,45 @@ func spawn_all_from_pool():
 	emit_signal("wave_updated", enemy_str_cur, enemy_str_max)
 	print("post reinforce: ", enemy_str_cur, "/", enemy_str_max)
 
+#func spawn_all_from_pool():
+#	for element in unitData:
+#		var amount = element["amount"]
+#		for i in amount:
+#			element["amount"] -= 1
+#			var unit = get(element.const).instance()
+#			unit.set_wave_strength(element.strength)
+#			enemy_str_cur += unit.wave_strength
+#			spawn_and_init_unit(unit)
+#
+#	emit_signal("diffi_updated", Globals.DIFFICULTY)
+#	emit_signal("wave_updated", enemy_str_cur, enemy_str_max)
+#	print("post reinforce: ", enemy_str_cur, "/", enemy_str_max)
+
+#			Globals.add_unit_to_scene(target_unit, Globals.Faction.hostile)
+#			Globals.curScene.add_unit_to_scene(target_unit, Globals.Faction.hostile)
+#			target_unit.do_init_unit()
+#			Globals.set_faction(target_unit, Globals.Faction.hostile)
+#			target_unit.set_armaments()
+#			target_unit.set_direction(Vector2(dir, 0))
+#			target_unit.add_health_bar()
+			
+			
+			
+
 func doInstanceEnemy(name):
 	return get(name).instance()
 
-func spawn_and_init_unit(enemy):
-#	return
-#	enemy.queue_free()
-#	return
-	Globals.curScene.add_unit_to_scene("Enemy_Units", enemy)
-	enemy.do_init_unit()
-	enemy.position = getSpawnOutsideView(enemy)
+func spawn_and_init_unit(unit):
+	Globals.add_unit_to_scene(unit, Globals.Faction.hostile)
+	unit.position = getSpawnOutsideView(unit)
 #	print("deploying enemy: ", enemy.display, " at ", pos)
 #	enemy.position = Vector2(player.position.x + 100, player.position.y - 700 + Globals.curScene.get_node("Enemy_Units").get_children().size() * 125)
 #	enemy.position = player.position + Vector2(0, - 300)
-#	enemy.rotation = PI/3
-#	enemy.kill()
-	Globals.set_hostile(enemy)
-	enemy.set_armaments()
-#	print(enemy.get_node("Mounts").get_child(0).get_child(0).get_node("Sprites/Main").scale)
-	enemy.set_direction()
-#	enemy.set_active()
-#	enemy.speed = 0
-	enemy.connect("_isdestroyed", self, "_on_enemy_from_wave_destroyed", [enemy])
-	enemy.set_active()
+	unit.set_direction()
+	unit.connect("_isdestroyed", self, "_on_enemy_from_wave_destroyed", [unit])
+	if not unit.canWarp:
+		unit.set_active()
+#	unit.set_active()
 #	enemy.doFullyEnable()
 	#print("spawning ", enemy.display, ": ", enemy.position, ", rot: ", enemy.rotation_degrees)
 

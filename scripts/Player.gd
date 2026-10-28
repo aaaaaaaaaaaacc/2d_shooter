@@ -16,6 +16,7 @@ onready var sprites = $Sprites
 var frame = 0
 
 var display = "Player"
+var active_weapon:Weapon_Base
 
 signal boost_charge_changed
 
@@ -289,7 +290,6 @@ func _tick_shift(delta: float) -> void:
 		
 		
 func do_init_player():
-	
 	texDim = Vector2($Sprites/Main.texture.get_width() * $Sprites/Main.scale.x, $Sprites/Main.texture.get_height() * $Sprites/Main.scale.y)
 	isPlayer = true
 	$ColNodes/DmgNormal.set_collision_layer_bit(6, true)
@@ -299,7 +299,6 @@ func do_init_player():
 	health = baseStats.maxHealth
 	maxHealth = health
 	gravity_vec = Globals.BASEGRAVITY
-	visible = false
 	
 	update_stats()
 	Globals.connectHurtBoxes(self)
@@ -309,7 +308,7 @@ func do_init_player():
 		connect("_has_warped_out", Globals.GAMESCREEN, "on_warp_out_end_level")
 		
 	$Label.set_as_toplevel(true)
-	$Jump.set_as_toplevel(true)
+#	$Jump.set_as_toplevel(true)
 
 	addPhysCollision()
 #	addSightCollision()
@@ -345,7 +344,8 @@ func set_active():
 	enableItems()
 	enableShield()
 	setFirstWeaponActive()
-	getActiveWeapon().doSelect()
+	active_weapon.doSelect()
+#	getActiveWeapon().doSelect()
 	$Mounts.visible = true
 
 func enableShield():
@@ -357,6 +357,7 @@ func setFirstWeaponActive():
 		count += 1
 		if wpn.canBeSelected():
 			active_weapon_index = count
+			active_weapon = getActiveWeapon()
 			return
 	
 func doSelectItem(key):
@@ -380,18 +381,22 @@ func doSelectItem(key):
 func selectWeapon(step):
 	if not ready:
 		return
-	if not getActiveWeapon().canBeUnselected():
+#	if not getActiveWeapon().canBeUnselected():
+	if not active_weapon.canBeUnselected():
 		return false
 	
-	getActiveWeapon().doUnselect()
-		
+#	getActiveWeapon().doUnselect()
+	active_weapon.doUnselect()
+	
 	active_weapon_index += step
 	if active_weapon_index > $Mounts/A.get_child_count()-1:
 		active_weapon_index = 1
 	elif active_weapon_index < 1:
 		active_weapon_index = $Mounts/A.get_child_count()-1
 
-	getActiveWeapon().doSelect()
+	active_weapon = getActiveWeapon()
+	active_weapon.doSelect()
+#	getActiveWeapon().doSelect()
 	
 func getActiveWeapon():
 	return $Mounts/A.get_child(active_weapon_index)
@@ -406,7 +411,8 @@ func disableItemsAndWeapons():
 func enableWeapons():
 	for n in $Mounts/A.get_children():
 		n.doEnable()
-	getActiveWeapon().doSelect()
+	active_weapon.doSelect()
+#	getActiveWeapon().doSelect()
 	
 func enableItems():
 	for n in $Items.get_children():
@@ -552,7 +558,8 @@ func handleMainBoostCharge(_delta):
 func handleAimRectangle(_delta):
 #	print("handleAimRectangle player")
 
-	var angle:int = getActiveWeapon().deviation
+#	var angle:int = getActiveWeapon().deviation
+	var angle:int = active_weapon.deviation
 	if angle == 0: 
 		angle = 1
 	
@@ -638,9 +645,9 @@ func set_armaments():
 	
 	var weapons = []
 	weapons.append(get_and_init_shield())
+	weapons.append(Globals.getWeaponBase("Laserblaster"))
 	weapons.append(Globals.getWeaponBase("Burstblaster"))
 	weapons.append(Globals.getWeaponBase("Autocannon"))
-	weapons.append(Globals.getWeaponBase("Laserblaster"))
 	weapons.append(Globals.getWeaponBase("Player Rail"))
 	
 	for n in weapons:
@@ -801,9 +808,13 @@ func checkAggro(shooterObj):
 func handle_weapons(_delta):
 #	print("handle_weapons")
 	if Input.is_action_pressed("fire"):
-		var weapon = getActiveWeapon()
-		if weapon and weapon.can_fire():
-			weapon.do_fire(null)
+#		var weapon = getActiveWeapon()
+#		if weapon and weapon.can_fire():
+#			weapon.do_fire(null)
+		
+		if active_weapon and active_weapon.can_fire():
+			active_weapon.do_fire(null)
+
 	
 func handleItems(_delta):
 	return

@@ -25,14 +25,21 @@ func _input(event):
 		if event is InputEventMouseButton:
 			if event.button_index == BUTTON_LEFT and event.pressed:
 				is_placing = false
+				unit.set_position_direction(Globals.MOUSE, Vector2.ZERO)
 				unit.set_active()
+				unit = null
+			elif event.button_index == BUTTON_RIGHT and event.pressed:
+				is_placing = false
+				unit.remove()
+				unit.mark_debug_menu_entry_as_removed()
+				unit.queue_free()
 				unit = null
 
 func init_spawn_panel():
-	var i:int = 0
-	for val in Handler_Spawn.UnitType:
-		print(val, ": ", i)
-		i+= 1
+#	var i:int = 0
+#	for val in Handler_Spawn.UnitType:
+#		print(val, ": ", i)
+#		i+= 1
 		
 #	print(Handler_Spawn.UNIT_SCENES[10])
 	

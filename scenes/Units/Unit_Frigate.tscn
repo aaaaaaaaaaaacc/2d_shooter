@@ -181,6 +181,9 @@ position = Vector2( 105, -22 )
 health = 20
 maximum_rotation = 89.0
 
+[node name="Jump" parent="." index="6"]
+visible = false
+
 [node name="VisibilityNotifier2D" parent="." index="7"]
 scale = Vector2( 5.49501, -0.922956 )
 

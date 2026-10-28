@@ -161,7 +161,7 @@ func bound_process(_delta):
 		set_inactive()
 		$Debug.show()
 		showDebug()
-		mark_debug_menu_entry_as_removed()
+		mark_debug_menu_entry_as_out_of_bounds()
 		return
 		
 	if position.y >= Globals.HEIGHT -5 or position.y <= Globals.ROADY -5:

@@ -61,8 +61,8 @@ func do_init_unit():
 
 	Globals.connectHurtBoxes(self)
 	
-	if has_node("Jump"):
-		$Jump.set_as_toplevel(true)
+#	if has_node("Jump"):
+#		$Jump.set_as_toplevel(true)
 	
 	setDamageBreaks()
 	init_lifetime()
@@ -141,12 +141,21 @@ func check_hp_post_dmg(amount):
 #	print("check_hp_post_dmg ", get_class())
 	if health <= 0:
 		kill()
-	elif stats.can_withdraw and withdraw_condition(amount):
+	elif can_withdraw() and withdraw_condition(amount):
 		enter_withdraw_condition_state()
-	elif stats.can_crash and crash_condition(amount):
+	elif can_crash() and crash_condition(amount):
 		enter_crash_condition_state()
 	else:
 		check_add_gfx_dmg_effect()
+		
+func can_withdraw():
+	return stats.can_withdraw
+	
+func can_crash():
+	if stats.can_crash:
+		if not isWarping:
+			return ($SM.state != $SM.states.crash)
+	return false
 
 func check_add_gfx_dmg_effect():
 	if smoke < max_smoke:
@@ -240,11 +249,7 @@ func randomizeWeaponStartCooldown():
 		var weapon = mount.get_node("Weapon")
 		if weapon.rof != 0:
 			weapon.cooldown = rand_range(0, weapon.rof*2)
-
-func x_process(_delta):
-	if isWarping:
-		$Jump.position = global_position
-
+			
 func _draw():
 	if Globals.SIGHTDEBUG:
 		drawSight()
@@ -349,16 +354,22 @@ func update_debug_menu_entry_on_state_change():
 		debug_menu_row.get_node("target/label").text = str(getTargetDisplay())
 		
 func mark_debug_menu_entry_as_killed():
-#	debug_menu_row.theme_type_variation = "label_font_red"
-	for n in debug_menu_row.get_children():
-		n.get_node("label").theme_type_variation = "label_font_red"
-#	debug_menu_row.get_node("name/label").theme_type_variation = "label_font_red"
+	if debug_menu_row != null and is_instance_valid(debug_menu_row):
+	#	debug_menu_row.theme_type_variation = "label_font_red"
+		for n in debug_menu_row.get_children():
+			n.get_node("label").theme_type_variation = "label_font_red"
+	#	debug_menu_row.get_node("name/label").theme_type_variation = "label_font_red"
+
+func mark_debug_menu_entry_as_out_of_bounds():
+	if debug_menu_row != null and is_instance_valid(debug_menu_row):
+	#	debug_menu_row.theme_type_variation = "label_font_red"
+		for n in debug_menu_row.get_children():
+			n.get_node("label").theme_type_variation = "label_font_yellow"
+	#	debug_menu_row.get_node("name/label").theme_type_variation = "label_font_red"
 
 func mark_debug_menu_entry_as_removed():
-#	debug_menu_row.theme_type_variation = "label_font_red"
-	for n in debug_menu_row.get_children():
-		n.get_node("label").theme_type_variation = "label_font_yellow"
-#	debug_menu_row.get_node("name/label").theme_type_variation = "label_font_red"
+	if debug_menu_row != null and is_instance_valid(debug_menu_row):
+		debug_menu_row.queue_free()
 
 func updateDebugList():
 	$Debug/C/behav.rect_position = global_position + Vector2(-30, 50)
@@ -452,10 +463,17 @@ func adjust_stats_res():
 	
 func can_warp_in():
 	return false
+	
+func stop_delayed_explosion_effects():
+	for n in $EffectNodes.get_children():
+		if n.is_explosion and n.delay >= 0.0:
+			n.set_physics_process(false)
 		
 func setup_delayed_warp_in(time):
-	print("setup_delayed_warp_in for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames())
-	hide()
+	print("setup_delayed_warp_in for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames(), " visible: ", visible)
+	
+	$Sprites.hide()
+	$ThrusterNodes.hide()
 	hide_all_control_nodes()
 	set_inactive()
 	var timer = Timer.new()
@@ -466,9 +484,10 @@ func setup_delayed_warp_in(time):
 	timer.wait_time = time
 	timer.start()
 	$Jump.visible = true
+	$Jump.scale = Vector2.ZERO
 	
 func setup_delayed_warp_out(time):
-	print("setup_delayed_warp_out for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames())
+	print("setup_delayed_warp_out for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames(), " visible: ", visible)
 	if $TimerNodes.has_node("WarpOutTimer"):
 		print("trying to delay warp out, but its already happening")
 		return false
@@ -489,8 +508,8 @@ func doWarpIn():
 	warpInStepOne()
 
 func warpInStepOne():
+	print("warpInStepOne for ", self.display, ", frame ", Engine.get_idle_frames(), " visible: ", visible)
 	isWarping = true
-	$Jump.scale = Vector2.ZERO
 
 	var durIn = 1.0 * Globals.mod / 5
 	var tween = get_tree().create_tween()
@@ -500,7 +519,8 @@ func warpInStepOne():
 	tween.tween_callback(self, "warp_in_phase_two")
 
 func warp_in_phase_two():
-	show()
+	$Sprites.show()
+	$ThrusterNodes.show()
 	$Sprites.scale = Vector2.ZERO
 	$Sprites.modulate.a = 0.0
 	$Mounts.scale = Vector2.ZERO
@@ -556,6 +576,7 @@ func warp_out_phase_one():
 	$Jump.visible = true
 	do_unselect_all_weapons()
 	hide_all_control_nodes()
+	stop_delayed_explosion_effects()
 	
 	var durOut = 1.0 * Globals.mod / 5
 	var tween = get_tree().create_tween()
@@ -656,6 +677,10 @@ func getSpawnY(_viewFrom, _viewTo):
 	var variance = 400
 	var y = Globals.HEIGHT/2 + Globals.rng.randi_range(-variance, variance)
 	return y
+	
+func set_position_direction(pos:Vector2, dir:Vector2):
+	global_position = pos
+	set_direction(dir)
 
 func set_direction(dirVector:Vector2 = Vector2.ZERO):
 	if dirVector:

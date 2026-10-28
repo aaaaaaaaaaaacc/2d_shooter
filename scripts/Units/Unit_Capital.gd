@@ -1,11 +1,18 @@
 extends Air_Unit
 class_name Capital
 
-const CRASH_GRAVITY := 30.0
+const CRASH_MAX_TILT_DEGREES := 6.0
+
+const CRASH_GRAVITY := 20.0
 const CRASH_DRAG := 0.995
 const CRASH_ROT_ACCEL_MIN := 0.3
 const CRASH_ROT_ACCEL_MAX := 0.5
 const CRASH_ROT_SPEED_MAX := 10.0
+
+const CRASH_HORIZONTAL_SPEED_SCALE := 0.8
+const CRASH_VERTICAL_SPEED_SCALE := 0.5
+const CRASH_MIN_FALL_SPEED := 10.0
+const CRASH_GROUND_MARGIN := 30.0
 
 func _ready():
 	for n in $ThrusterNodes.get_children():
@@ -38,75 +45,88 @@ func crash_step_one():
 	$TimerNodes/CrashTimer.one_shot = true
 	$TimerNodes/CrashTimer.connect("timeout", self, "crash_step_two")
 	$TimerNodes/CrashTimer.start()
+	
 	for n in 1:
 		add_exp_fire_smoke_fx(1.25, 0.3)
 		
-	for n in $Mounts.get_children():
-		n.kill()
+#	for n in $Mounts.get_children():
+#		n.kill()
+		
+func get_crash_spin_direction():
+	if $Sprites/Main.flip_h == false:
+		return 1
+	return -1
 
 func crash_step_two():
+	if crashing:
+		return
+
 	danger.fill(0.0)
 	crashing = true
 
-	# Preserve momentum, but reduce it for the damaged ship.
-	crash_velocity = velocity * 0.8
-	crash_velocity.y *= 0.5
-	crash_velocity.y *= 4
+	# Use the velocity before clearing it to choose the spin direction.
+	crash_velocity = velocity * CRASH_HORIZONTAL_SPEED_SCALE
+	crash_velocity.y *= CRASH_VERTICAL_SPEED_SCALE
 
-	# Ensure a minimum downward falling speed.
-	crash_velocity.y = max(crash_velocity.y, 10.0)
-
+	# In screen coordinates, positive Y is downward.
+	crash_velocity.y = max(crash_velocity.y, CRASH_MIN_FALL_SPEED)
 	velocity = Vector2.ZERO
 
-	# Pick a spin direction based on the ship's travel direction.
-	var spin_direction = sign(direction.x)
+#	var spin_direction = sign(direction.x)
+	var spin_direction = get_crash_spin_direction()
 	if spin_direction == 0:
-		spin_direction = 1.0
+		spin_direction = -1.0 if randf() < 0.5 else 1.0
+	crash_start_rotation_degrees = rotation_degrees
+	crash_tilt_degrees = 0.0
+	crash_rotation_direction = spin_direction
+	
+	print("spin dir: ", spin_direction)
+	print("crash rot dir: ", crash_rotation_direction)
 
 	crash_rotation_speed = 0.0
-	crash_rotation_accel = rand_range(
-		CRASH_ROT_ACCEL_MIN,
-		CRASH_ROT_ACCEL_MAX
-	) * spin_direction
+	crash_rotation_accel = rand_range(CRASH_ROT_ACCEL_MIN, CRASH_ROT_ACCEL_MAX) * spin_direction
 
-	for n in max_smoke:
-		add_exp_fire_smoke_fx(1.0, rand_range(0, 1) * n * 2)
+	for i in range(max_smoke):
+		add_exp_fire_smoke_fx(1.0, rand_range(0.0, 1.0) * i * 2.0)
 
-	for n in max_smoke:
+	for i in range(max_smoke):
 		var explo = Globals.getExplo("wreck", get_dmg_gfx_scale())
 		explo.set_as_toplevel(true)
 		explo.offset = get_point_inside_tex()
-		explo.delay = rand_range(0.3, 1.0) * n + 3
+		explo.delay = rand_range(0.3, 1.0) * i + 3.0
 		$EffectNodes.add_child(explo)
 
 
 func process_movement_crash(delta):
-	# Gravity affects only the vertical axis.
 	crash_velocity.y += CRASH_GRAVITY * delta
 
-	# Frame-rate-independent damping.
-#	crash_velocity *= pow(CRASH_DRAG, delta * 60.0)
+	# 0.995 velocity retention per 1/60 second, scaled for delta.
+#	var damping = pow(CRASH_DRAG, delta * 60.0)
+#	crash_velocity *= damping
 
 	global_position += crash_velocity * delta
 
-	# Gradually develop a tumble.
 	crash_rotation_speed += crash_rotation_accel * delta
-	crash_rotation_speed = clamp(
-		crash_rotation_speed,
-		-CRASH_ROT_SPEED_MAX,
-		CRASH_ROT_SPEED_MAX
-	)
+	crash_rotation_speed = clamp(crash_rotation_speed, -CRASH_ROT_SPEED_MAX, CRASH_ROT_SPEED_MAX)
+	
+	var next_tilt = crash_tilt_degrees + crash_rotation_speed * delta
 
-	# Use angular velocity in degrees per second.
-	rotation_degrees += crash_rotation_speed * delta
+	if crash_rotation_direction > 0.0:
+		crash_tilt_degrees = min(next_tilt, CRASH_MAX_TILT_DEGREES)
+	else:
+		crash_tilt_degrees = max(next_tilt, -CRASH_MAX_TILT_DEGREES)
 
-	# Trigger impact when the ship reaches the ground.
-	if global_position.y >= Globals.HEIGHT - 30:
+	rotation_degrees = crash_start_rotation_degrees + crash_tilt_degrees
+
+	# Stop the spin once the tilt limit is reached.
+	if abs(crash_tilt_degrees) >= CRASH_MAX_TILT_DEGREES:
+		crash_rotation_speed = 0.0
+		crash_rotation_accel = 0.0
+
+	var ground_y = Globals.HEIGHT - CRASH_GROUND_MARGIN
+	if global_position.y >= ground_y:
+		global_position.y = ground_y
 		crash_impact()
-
-#const CRASH_ROT_ACCEL_MIN := 0.8
-#const CRASH_ROT_ACCEL_MAX := 1.4
-#const CRASH_ROT_SPEED_MAX := 10.0
 
 func crash_impact():
 	crashing = false

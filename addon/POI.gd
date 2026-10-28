@@ -17,7 +17,7 @@ func _ready():
 
 func add_indicator(context, target):
 #	var name = str(target.name, "-", target.id)
-	print(target)
+	print("target: ", target)
 	var pointer = Globals.POI_MARKER.instance()
 	pointer.id = target.id
 	pointer.target = target
@@ -37,7 +37,12 @@ func remove_indicator(target):
 #	var node = $actives.get_node(target.name)
 #	if node:
 #		node.queue_free()
-#		emit_signal("indicator_removed")
+#		emit_signal("indicator_removed
+
+func remove_all_indicators():
+	for n in $actives.get_children():
+		n.queue_free()
+		emit_signal("indicator_removed")
 
 func screen_size_changed():
 	for c in $actives.get_children():

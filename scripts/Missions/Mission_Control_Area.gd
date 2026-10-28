@@ -77,18 +77,19 @@ func create_poi_dummy_unit(pos):
 #	Globals.curScene.get_node("Various").add_child(reward)
 	reward.position = global_position + pos
 
-func do_process(_delta):
+func do_process_time(_delta):
 	if inArea:
 		timeRemain = max(0.0, timeRemain - _delta)
 	else:
 		timeRemain = min(maxTime, timeRemain + _delta)
 		
-	timeRemain = max(0, timeRemain)
-	timerPct = timeRemain / maxTime * 100 / 100
-	
+#	print(timeRemain)
+
+	timerPct = timeRemain / maxTime if maxTime > 0.0 else 0.0
+
 	timerLabel.text = "%.2f" % timeRemain
-	bar.value = (1-timerPct)*100
-	
+	bar.value = (1.0 - timerPct) * 100.0
+
 	if timeRemain <= 0.0:
 		set_mission_condition_success()
 
@@ -115,5 +116,5 @@ func set_mission_condition_success():
 	if has_node("Area"):
 		zone_polygon.hide()
 	if poi_dummy.target_indicator != null:
-		Globals.UI.poi.remove_indicator(self)
+		Globals.UI.poi.remove_indicator(poi_dummy)
 

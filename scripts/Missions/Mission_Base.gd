@@ -97,19 +97,19 @@ func set_mission_enemies():
 	
 	match code:
 		"HOLD":
-			legal_units = ["FIGHTER", "HELI_LIGHT"]
+			legal_units = [handler_s.UnitType.FIGHTER, handler_s.UnitType.HELI_LIGHT]
 		"SURVIVE":
-			legal_units = ["FIGHTER", "HELI_HEAVY", "FRIGATE"]
+			legal_units = [handler_s.UnitType.FIGHTER, handler_s.UnitType.HELI_HEAVY, handler_s.UnitType.FRIGATE]
 		"RAID_CONVOY_LIGHT":
-			legal_units = ["FIGHTER", "HELI_LIGHT"]
+			legal_units = [handler_s.UnitType.FIGHTER, handler_s.UnitType.HELI_LIGHT]
 		"CONTROL_AREA":
-			legal_units = ["FIGHTER", "HELI_LIGHT"]
+			legal_units = [handler_s.UnitType.FIGHTER, handler_s.UnitType.HELI_LIGHT]
 		"TEST":
 			legal_units = []
 			
 	for entry in legal_units:
 		for unit in unit_data:
-			if entry == unit.const:
+			if entry == unit.type:
 				unit.legal = true
 				break
 	
@@ -135,6 +135,7 @@ func do_start_mission():
 
 func set_mission_condition_success():
 	print("set_mission_condition_success()")
+	Globals.UI.set_main_text("Mission Sucess")
 	missionState = M_State.SUCCESS
 	Globals.UI.update_on_success_mission(self)
 	handler_s.do_disable()
@@ -159,6 +160,7 @@ func _on_mission_protect_destroyed():
 	
 func _on_mission_target_destroyed():
 	print("_on_mission_target_destroyed")
+	Globals.UI.set_main_text("Target Destroyed")
 	remaining -= 1
 	if remaining <= 0:
 		set_mission_condition_success()

@@ -679,6 +679,7 @@ func warpMissionTargets():
 func terminate_remains_on_mission_scene_end():
 	print("terminate_remains_on_mission_scene_end")
 	if mission_node != null:
-		Globals.UI.poi.remove_indicator(mission_node)
+		Globals.UI.poi.remove_all_indicators()
+#		Globals.UI.poi.remove_indicator(mission_node)
 		mission_node = null
 		Globals.UI.reset_mission_sub_ui()

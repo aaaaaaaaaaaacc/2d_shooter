@@ -191,6 +191,3 @@ func set_wander_target():
 		newTarget.y += Globals.HEIGHT
 	
 	moveTarget = newTarget
-	
-#func setup_delayed_warp_in(time):
-#	print("setup_delayed_warp_in for ", self.display, ": ", time, " seconds.")

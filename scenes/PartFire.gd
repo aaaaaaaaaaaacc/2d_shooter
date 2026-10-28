@@ -3,6 +3,7 @@ extends Node2D
 var delay:float = 0.0
 var offset:Vector2 = Vector2.ZERO
 var noRota:bool = true
+var is_explosion:bool = false
 
 func _ready():
 	if delay > 0:
@@ -31,6 +32,6 @@ func _physics_process(delta):
 			for n in $Parts.get_children():
 				if n.visible:
 					n.emitting = true
-	elif noRota:
-		global_rotation = 0
+#	elif noRota:
+#		global_rotation = 0
 		

@@ -22,7 +22,7 @@ func weapon_process(_delta):
 		cooldown = max(cooldown - _delta, -rof)
 	
 	curDeviation = deviation + ((deviation * 6) * (cooldown + rof) / rof)
-	print(curDeviation)
+#	print(curDeviation)
 	drawAimVector()
 	update_cooldown_ui_nodes()
 #	print(Engine.get_idle_frames(), "_weapon: ", global_rotation_degrees)

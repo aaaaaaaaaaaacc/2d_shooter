@@ -12,7 +12,7 @@ func do_specific_unit_init():
 	maxSpeed = 0
 	rotator = 15.0
 	
-func do_turnaround():
+func setUnitFacing():
 	return
 	
 func process_movement(_delta):

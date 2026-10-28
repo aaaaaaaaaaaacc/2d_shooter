@@ -1,6 +1,10 @@
 extends Mission_Base
 class_name Mission_Raid_Light_Convoy
 
+const warp_anim_time:float = 0.6
+const mission_time:float = 3.0
+const time_until_target_arrives:float = 3.0
+
 func _ready():
 	pass
 	
@@ -15,25 +19,36 @@ func set_base_props():
 	desc = "Ambush the lightly armored supply convoy before it reaches enemy lines.\nEliminate all escorts and destroy the cargo trucks with minimal collateral damage"
 
 func mission_final_setup_self():
-	do_init(60)
+	do_init(mission_time)
+	do_setup()
 	
-	var group = []
-	group.append({"name": "MOBILE_AA_LIGHT", "amount": Globals.rng.randi_range(1, 1), "target": false})
-	group.append({"name": "TRUCK_LIGHT", "amount": Globals.rng.randi_range(1, 2), "target": true})
-	group.append({"name": "MOBILE_AA_LIGHT", "amount": Globals.rng.randi_range(1, 1), "target": false})
-	group.append({"name": "TRUCK_LIGHT", "amount": Globals.rng.randi_range(1, 2), "target": true})
-	group.append({"name": "MOBILE_AA_LIGHT", "amount": Globals.rng.randi_range(1, 1), "target": false})
-	do_setup(group)
-	
-	Globals.PLAYER.connect("_has_warped_in", self, "do_start_mission")
-	
-
+func do_process_time(_delta):
+	if timeRemain > 0.0:
+		timeRemain = max(0, timeRemain - _delta)
+		timerLabel.text = "%.2f" % timeRemain
+		bar.value = (timeRemain / maxTime) * 100.0
+		
+	if timeRemain <= 0.0:
+		set_mission_condition_success()
+		
 func do_init(init_time):
 	maxTime = init_time
 	timeRemain = init_time
 	remaining = amount
 	
-func do_setup(unitArray):
+func do_setup():
+	var raid_target_group = []
+	raid_target_group.append({"type": handler_s.UnitType.MOBILE_AA_LIGHT, "name": "", "amount": Globals.rng.randi_range(1, 1), "target": false})
+	raid_target_group.append({"type": handler_s.UnitType.TRUCK_LIGHT, "name": "", "amount": Globals.rng.randi_range(1, 2), "target": true})
+	raid_target_group.append({"type": handler_s.UnitType.MOBILE_AA_LIGHT, "name": "", "amount": Globals.rng.randi_range(1, 1), "target": false})
+	raid_target_group.append({"type": handler_s.UnitType.TRUCK_LIGHT, "name": "", "amount": Globals.rng.randi_range(1, 2), "target": true})
+	raid_target_group.append({"type": handler_s.UnitType.MOBILE_AA_LIGHT, "name": "", "amount": Globals.rng.randi_range(1, 1), "target": false})
+	
+	setup_targets(raid_target_group)
+
+	Globals.PLAYER.connect("_has_warped_in", self, "do_start_mission")
+	
+func setup_targets(unitArray):
 	var num_targets:int = 0
 	var allUnits = []
 	var lowestSpeed:int = 1000
@@ -45,21 +60,23 @@ func do_setup(unitArray):
 		startX = 0
 	else: startX = Globals.WIDTH
 	
-	for unit in unitArray:
+	timer
+	
+	
+	for unit in unitArray:#mark unit as target
 		for i in unit.amount:
-			var object = handler_s.get_unit_instance(unit.type)
-			allUnits.append(object)
-			Globals.curScene.add_unit_to_scene("Enemy_Units", object)
-			object.do_init_unit()
-			Globals.set_hostile(object)
-			object.set_armaments()
-			object.set_direction(Vector2(dir, 0))
-			object.look_ahead = 0
-			lowestSpeed = min(lowestSpeed, object.maxSpeed)
+			var target_unit = handler_s.get_unit_instance(unit.type)
+			allUnits.append(target_unit)
+			Globals.add_unit_to_scene(target_unit, Globals.Faction.hostile)
+			target_unit.set_direction(Vector2(dir, 0))
+			target_unit.look_ahead = 0
+			lowestSpeed = min(lowestSpeed, target_unit.maxSpeed)
 			if unit.target:
 				num_targets += 1
-				targets.append(object)
-				object.connect("objectiveDestroyed", self, "_on_mission_target_destroyed")
+				target_unit.mark_as_target()
+				target_unit.add_health_bar()
+				targets.append(target_unit)
+				target_unit.connect("objectiveDestroyed", self, "_on_mission_target_destroyed")
 		
 	for i in len(allUnits):
 		var single = allUnits[i]
@@ -72,28 +89,14 @@ func do_setup(unitArray):
 		if single.display == "Light Truck" or single.display == "Heavy Truck" or single.display == "Mobile AA Light":
 			single.set_active()
 			single.get_node("SM").canChangeState = false
-			if single.display == "Heavy Truck" or single.display == "Light Truck":
-				single.mark_as_target()
-				single.add_health_bar()
-#				single.addHealthLabel()
+#			if single.display == "Heavy Truck" or single.display == "Light Truck":
+#				single.mark_as_target()
+#				single.add_health_bar()
 		
 	amount = num_targets
 	remaining = num_targets
 		
 	for n in targets:
 		Globals.UI.add_target_healthbar_to_mission_bar(n)
-
-func do_process(_delta):
-#	if inArea:
-#		timeRemain = max(0.0, timeRemain - _delta)
-#	else:
-#		timeRemain = min(maxTime, timeRemain + _delta)
 		
-	timeRemain = max(0, timeRemain - _delta)
-	timerPct = timeRemain / maxTime * 100 / 100
-	
-	timerLabel.text = "%.2f" % timeRemain
-	bar.value = (1-timerPct)*100
-	
-	if timeRemain <= 0.0:
-		set_mission_condition_success()
+		

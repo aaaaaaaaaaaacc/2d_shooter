@@ -644,7 +644,6 @@ func add_unit_to_scene(unit, faction:int):
 	unit.do_init_unit()
 	unit.set_armaments()
 	
-	
 func set_faction(entity, faction):
 #	entity.faction = faction_id
 	entity.faction = faction

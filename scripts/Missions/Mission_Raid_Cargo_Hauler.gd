@@ -2,8 +2,8 @@ extends Mission_Base
 class_name Mission_Raid_Cargo_Hauler
 
 const warp_anim_time:float = 0.6
-const mission_time:float = 2.0
-const time_until_target_arrives:float = 1.0
+const mission_time:float = 3.0
+const time_until_target_arrives:float = 3.0
 
 #var update_interval:float = 0.1
 #var current_update_interval:float = 0.0
@@ -79,16 +79,11 @@ func setup_targets(unitArray):
 			var target_unit = handler_s.get_unit_instance(unit.type)
 			allUnits.append(target_unit)
 			Globals.add_unit_to_scene(target_unit, Globals.Faction.hostile)
-#			Globals.curScene.add_unit_to_scene(target_unit, Globals.Faction.hostile)
-#			target_unit.do_init_unit()
-#			Globals.set_faction(target_unit, Globals.Faction.hostile)
-#			target_unit.set_armaments()
 			target_unit.set_direction(Vector2(dir, 0))
-			target_unit.add_health_bar()
 			if unit.target:
 				num_targets += 1
-#				object.display = "Cargohauler"
 				target_unit.mark_as_target()
+				target_unit.add_health_bar()
 				targets.append(target_unit)
 				target_unit.connect("objectiveDestroyed", self, "_on_mission_target_destroyed")
 	
