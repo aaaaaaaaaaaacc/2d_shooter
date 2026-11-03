@@ -9,7 +9,7 @@ func _ready():
 func do_sub_init_weapon():
 	add_to_group("isShield")
 	connect_shield_timer_signals()
-	$ColNodes/Shield/A.shape.radius = shieldRadius
+	$ColNodes/Shield/CollisionShape2D.shape.radius = shieldRadius
 	spriteScale = shieldRadius / float(100) * 2
 	$Shield.scale = get_shield_max_scale()
 	

@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=2]
+[gd_scene load_steps=20 format=2]
 
 [ext_resource path="res://scripts/Units/Unit_Frigate.gd" type="Script" id=1]
 [ext_resource path="res://scenes/Units/Unit_Base.tscn" type="PackedScene" id=2]
@@ -8,6 +8,7 @@
 [ext_resource path="res://scenes/Mount.tscn" type="PackedScene" id=6]
 [ext_resource path="res://sm/Frigate_SM.gd" type="Script" id=7]
 [ext_resource path="res://resources/frigate.tres" type="Resource" id=8]
+[ext_resource path="res://scenes/Dmg_Area.tscn" type="PackedScene" id=9]
 
 [sub_resource type="Gradient" id=8]
 offsets = PoolRealArray( 0, 0.493506, 1 )
@@ -106,8 +107,8 @@ scale = 3.0
 scale_random = 0.5
 color_ramp = SubResource( 7 )
 
-[sub_resource type="RectangleShape2D" id=1]
-extents = Vector2( 120, 23 )
+[sub_resource type="RectangleShape2D" id=15]
+extents = Vector2( 119.5, 21 )
 
 [sub_resource type="Animation" id=2]
 length = 0.001
@@ -181,15 +182,15 @@ position = Vector2( 105, -22 )
 health = 20
 maximum_rotation = 89.0
 
-[node name="Jump" parent="." index="6"]
-visible = false
-
 [node name="VisibilityNotifier2D" parent="." index="7"]
 scale = Vector2( 5.49501, -0.922956 )
 
-[node name="A" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="0"]
-position = Vector2( 3, 1 )
-shape = SubResource( 1 )
+[node name="Node2D" parent="ColNodes" index="0" instance=ExtResource( 9 )]
+dmg_multi = 1.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ColNodes/Node2D" index="0"]
+position = Vector2( 5, 2 )
+shape = SubResource( 15 )
 
 [node name="AnimationPlayer" parent="." index="15"]
 anims/RESET = SubResource( 2 )
@@ -200,4 +201,3 @@ anims/RESET = SubResource( 2 )
 [editable path="ThrusterNodes/DownB"]
 [editable path="ThrusterNodes/UpA"]
 [editable path="ThrusterNodes/UpB"]
-[editable path="Mounts/C"]

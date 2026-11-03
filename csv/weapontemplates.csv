@@ -11,8 +11,9 @@ type,display,dmgType,turnrate,health,texture,desc,projSize,projNumber,deviation,
 2,Burstlauncher,0,0.0,0,-,Cant evade this,0.8,1,1,3,2.0,5,7,30,600,3.0,0,0,0,1,0,0.2,0.2,0.1
 2,Swarmlauncher,0,0.0,0,Micromissilelauncher,Cant evade this,0.7,6,13,1,1.5,3,4,30,600,3.0,0,0,0,1,0,0.0,0.5,0.3
 7,Torpedolauncher,0,0.0,0,Torpedolauncher,Hurts - if it hits,1.0,1,2,1,1.5,22,28,65,400,7.0,0,0,0,1,0,0.0,1.0,0.0
+7,Nukelauncher,0,0.0,0,Nukelauncher,Hurts - if it hits,1.0,1,2,1,1.5,22,28,100,400,3.0,0,0,0,1,0,0.0,1.0,0.0
 8,Mace,0,0.0,0,Mace,Melee,1.0,1,0,1,2.0,1,1,0,0,0.0,0,0,0,1,0,0.0,0.0,0.0
-4,Laserblaster,0,0.0,0,Laserblaster,Close up zap,1.0,1,0,1,0.3,4,5,0,0,0.2,350,6,0,1,0,0.0,0.0,0.0
+4,Laserblaster,0,0.0,0,Laserblaster,Close up zap,1.0,1,0,1,0.3,4,5,0,0,1.0,350,6,0,1,0,0.0,0.0,0.0
 4,Lasercannon,0,0.0,0,Lasercannon,Your average beam,1.0,1,0,1,1.0,7,9,0,0,1.0,525,5,0,1,0,0.0,0.0,0.0
 4,Laserlance,0,0.0,0,Laserlance,Lots of power,1.0,1,0,1,3.0,2,4,0,0,2.0,575,6,0,1,0,0.0,0.0,0.0
 6,Gauss-Accelerator,0,0.0,0,GaussAccelerator,Aim for the eyes,1.2,1,1,1,1.5,13,18,0,800,2.5,0,0,0,1,0,0.0,0.0,0.0

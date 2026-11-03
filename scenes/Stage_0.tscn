@@ -154,11 +154,6 @@ __meta__ = {
 "_gizmo_extents_": 50.0
 }
 
-[node name="Projectiles" type="Position2D" parent="."]
-__meta__ = {
-"_gizmo_extents_": 50.0
-}
-
 [node name="Fluff" type="Position2D" parent="."]
 
 [node name="Enemy_Units" type="Position2D" parent="."]
@@ -172,6 +167,11 @@ __meta__ = {
 }
 
 [node name="Friendly_Units" type="Position2D" parent="."]
+__meta__ = {
+"_gizmo_extents_": 50.0
+}
+
+[node name="Projectiles" type="Position2D" parent="."]
 __meta__ = {
 "_gizmo_extents_": 50.0
 }

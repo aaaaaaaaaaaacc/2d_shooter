@@ -1,10 +1,11 @@
-[gd_scene load_steps=14 format=2]
+[gd_scene load_steps=15 format=2]
 
 [ext_resource path="res://textures/shield_circle_w2.png" type="Texture" id=1]
 [ext_resource path="res://scripts/Weapon_Shield_Omni.gd" type="Script" id=2]
 [ext_resource path="res://scenes/Weapon_Base.tscn" type="PackedScene" id=3]
 [ext_resource path="res://scenes/Shaders/Weapon_Shield_Omni_2.gdshader" type="Shader" id=4]
 [ext_resource path="res://textures/shield_circle.png" type="Texture" id=5]
+[ext_resource path="res://scenes/Dmg_Area.tscn" type="PackedScene" id=6]
 
 [sub_resource type="Gradient" id=2]
 offsets = PoolRealArray( 0.2, 0.5, 0.8, 1 )
@@ -108,9 +109,7 @@ shader = ExtResource( 4 )
 shader_param/shield_strength = 0.0
 shader_param/time = null
 
-[sub_resource type="CircleShape2D" id=6]
-resource_local_to_scene = true
-radius = 60.0
+[sub_resource type="CircleShape2D" id=11]
 
 [node name="Weapon" instance=ExtResource( 3 )]
 script = ExtResource( 2 )
@@ -149,12 +148,11 @@ visible = false
 
 [node name="ColNodes" type="Position2D" parent="." index="10"]
 
-[node name="Shield" type="Area2D" parent="ColNodes" index="0"]
-collision_layer = 0
-collision_mask = 0
+[node name="Shield" parent="ColNodes" index="0" instance=ExtResource( 6 )]
+dmg_multi = 1.0
 
-[node name="A" type="CollisionShape2D" parent="ColNodes/Shield" index="0"]
-shape = SubResource( 6 )
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ColNodes/Shield" index="0"]
+shape = SubResource( 11 )
 
 [node name="ShieldSupercharge" type="Timer" parent="TimerNodes" index="0"]
 one_shot = true

@@ -14,10 +14,18 @@ func _ready():
 	position = OS.window_size / 2
 	if propagate_screen_change:
 		get_node("/root").get_viewport().connect("size_changed", self, "screen_size_changed")
+		
+func hide_pois():
+	for n in $actives.get_children():
+			n.hide()
+			
+func show_pois():
+	for n in $actives.get_children():
+			n.show()
 
 func add_indicator(context, target):
 #	var name = str(target.name, "-", target.id)
-	print("target: ", target)
+#	print("target: ", target)
 	var pointer = Globals.POI_MARKER.instance()
 	pointer.id = target.id
 	pointer.target = target

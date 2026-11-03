@@ -292,7 +292,7 @@ func _tick_shift(delta: float) -> void:
 func do_init_player():
 	texDim = Vector2($Sprites/Main.texture.get_width() * $Sprites/Main.scale.x, $Sprites/Main.texture.get_height() * $Sprites/Main.scale.y)
 	isPlayer = true
-	$ColNodes/DmgNormal.set_collision_layer_bit(6, true)
+	$ColNodes/Node2D.set_collision_layer_bit(6, true)
 	Globals.set_friendly(self)
 	set_base_stats()
 	setMass()
@@ -301,7 +301,7 @@ func do_init_player():
 	gravity_vec = Globals.BASEGRAVITY
 	
 	update_stats()
-	Globals.connectHurtBoxes(self)
+	connectHurtBoxes()
 	connect_main_ui_signals()
 	
 	if not is_connected("_has_warped_out", Globals.GAMESCREEN, "on_warp_out_end_level"):
@@ -646,7 +646,7 @@ func set_armaments():
 	var weapons = []
 	weapons.append(get_and_init_shield())
 	weapons.append(Globals.getWeaponBase("Laserblaster"))
-	weapons.append(Globals.getWeaponBase("Burstblaster"))
+	weapons.append(Globals.getWeaponBase("Nukelauncher"))
 	weapons.append(Globals.getWeaponBase("Autocannon"))
 	weapons.append(Globals.getWeaponBase("Player Rail"))
 	

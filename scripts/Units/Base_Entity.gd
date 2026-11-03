@@ -67,7 +67,7 @@ var isRamming = false
 var rammings = []
 
 var desc:String = ""
-var dmgZones = {"DmgNormal": 1, "DmgWeak": 2, "DmgStrong": 0.5}
+var dmgZones = {"DmgNormal": 1, "DmgNormal_2": 5, "DmgWeak": 2, "DmgStrong": 0.5}
 
 var subPanel_Stats = null
 var has_ControlNodes:bool = false
@@ -156,6 +156,7 @@ func icon_on_mouse_exited():
 	$Icon.material.set_shader_param("width", 0.0)
 
 func take_damage(entity, totalDmg:int):
+#	print(totalDmg)
 	
 #	totalDmg *= 2
 	#print("take_damage scope: ", self.display, " #", self.id)
@@ -720,3 +721,60 @@ func show_control_nodes():
 func hide_control_nodes():
 	for n in get_node("ControlNodes").get_children():
 		n.hide()
+
+func connectHurtBoxes():
+	if !has_node("ColNodes") or (maxHealth == 0 and maxShield == 0):
+		return
+	
+	connect("_damage_taken", self, "_on_damage_taken")
+	for col_area in get_node("ColNodes").get_children():
+		if col_area.get_child_count():
+			if col_area.name == "Shield":
+				col_area.connect("area_entered", self, "_on_Shield_area_entered", [col_area])
+				col_area.connect("area_exited", self, "_on_area_exited")
+			elif col_area.name != "Hover":
+	#				n.connect("area_entered", self, str("_on_", n.name, "_area_entered"), [entity])
+	#				n.connect("area_exited", self, str("_on_area_exited"), [entity])
+					col_area.connect("area_entered", self, "_on_DmgArea_entered", [col_area])
+					col_area.connect("area_exited", self, "_on_area_exited")
+
+func _on_DmgArea_entered(area:Area2D, col_area):
+#	print("Frame: ", Engine.get_idle_frames(), ", collision")
+#	print(area.owner.display, "/", area.name, " ENTER ", self.display, "/", col_area.name, "  on frame: ", Engine.get_idle_frames())
+#	handleImpact(area, entity, "DmgNormal")
+	handleImpact(area, col_area)
+	
+func _on_Shield_area_entered(area:Area2D, col_area):
+#	print(area.owner.display, "-", area.name, " ENTER ", self.display, "/", name, " frame: ", Engine.get_idle_frames())
+	if not area.owner.is_in_group("isUnit"):
+		handleImpact(area, col_area)
+	
+func _on_area_exited(area):
+#	print(area.owner.display, "-", area.name, " EXIT ", self.display, "/", name, " frame: ", Engine.get_idle_frames())
+	if isRamming:
+		endRamming(area)
+		
+func handleImpact(area, impacted_area):
+	var impact_cause = area.owner
+
+	if impact_cause.canExplodeOnContact():
+		impact_cause.explode()
+		return
+
+#	if owner.is_in_group("isUnit") or owner.is_in_group("isMount") or owner.is_in_group("isShield"):
+#		initRamming(area)
+#		return
+	if impact_cause.is_in_group("isUnit"):
+		initRamming(area)
+		return
+	if impact_cause.is_in_group("isShield") or impact_cause.is_in_group("isMount"):
+		return
+
+	if not destroyed and impact_cause.display == "Boundary":
+		if is_in_group("isUnit"):
+			kill_by_crash()
+			return
+
+	var dmgObj = impact_cause.getDamageObject()
+	take_damage(dmgObj, Globals.getRawDamage(dmgObj.minDmg, dmgObj.maxDmg, impacted_area.dmg_multi))
+	impact_cause.postImpacting()

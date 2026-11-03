@@ -19,10 +19,18 @@ extents = Vector2( 17.4375, 10.8125 )
 script = ExtResource( 1 )
 stats = ExtResource( 6 )
 
-[node name="SM" parent="." index="0" instance=ExtResource( 7 )]
+[node name="ColNodes@DmgNormal@A" type="CollisionShape2D" parent="." index="0"]
+position = Vector2( -19, 0 )
+shape = SubResource( 1 )
+
+[node name="ColNodes@DmgNormal@B" type="CollisionShape2D" parent="." index="1"]
+position = Vector2( 38.5625, -2.1875 )
+shape = SubResource( 2 )
+
+[node name="SM" parent="." index="2" instance=ExtResource( 7 )]
 script = ExtResource( 8 )
 
-[node name="Debug" parent="." index="1"]
+[node name="Debug" parent="." index="3"]
 visible = true
 
 [node name="moveTarget" parent="Debug" index="0"]
@@ -41,14 +49,6 @@ texture = ExtResource( 3 )
 maximum_rotation = 180.0
 invis = true
 
-[node name="VisibilityNotifier2D" parent="." index="7"]
+[node name="VisibilityNotifier2D" parent="." index="9"]
 position = Vector2( 1.5, 2.38419e-07 )
 scale = Vector2( 5.45, 1.7 )
-
-[node name="A" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="0"]
-position = Vector2( -19, 0 )
-shape = SubResource( 1 )
-
-[node name="B" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="1"]
-position = Vector2( 38.5625, -2.1875 )
-shape = SubResource( 2 )

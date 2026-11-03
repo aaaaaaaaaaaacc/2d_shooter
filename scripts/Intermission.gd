@@ -38,26 +38,16 @@ func instance_Spawner():
 func instance_MissionHandler():
 	return
 
-#func set_boundary_red():
-#	$Various/Boundary/DmgNormal/A.shape.a = Vector2(0, 0)
-#	$Various/Boundary/DmgNormal/A.shape.b = Vector2(Globals.WIDTH, 0)
-#	$Various/Boundary/DmgNormal/B.shape.a = Vector2(Globals.WIDTH, 0)
-#	$Various/Boundary/DmgNormal/B.shape.b = Vector2(Globals.WIDTH, Globals.HEIGHT)
-#	$Various/Boundary/DmgNormal/C.shape.a = Vector2(Globals.WIDTH, Globals.HEIGHT)
-#	$Various/Boundary/DmgNormal/C.shape.b = Vector2(0, Globals.HEIGHT)
-#	$Various/Boundary/DmgNormal/D.shape.a = Vector2(0, Globals.HEIGHT)
-#	$Various/Boundary/DmgNormal/D.shape.b = Vector2(0, 0)
-
-func set_boundary_red(): 
+func set_boundary(): 
 #	print("intermission set_boundary_red")
-	$Various/Boundary/DmgNormal/A.shape.a = Vector2(0, 0)
-	$Various/Boundary/DmgNormal/A.shape.b = Vector2(Globals.SCREEN.x, 0)
-	$Various/Boundary/DmgNormal/B.shape.a = Vector2(Globals.SCREEN.x, 0)
-	$Various/Boundary/DmgNormal/B.shape.b = Vector2(Globals.SCREEN.x, Globals.SCREEN.y - 10)
-	$Various/Boundary/DmgNormal/C.shape.a = Vector2(Globals.SCREEN.x, Globals.SCREEN.y - 10)
-	$Various/Boundary/DmgNormal/C.shape.b = Vector2(0, Globals.SCREEN.y - 10)
-	$Various/Boundary/DmgNormal/D.shape.a = Vector2(0, Globals.SCREEN.y - 10)
-	$Various/Boundary/DmgNormal/D.shape.b = Vector2(0, 0)
+	$Various/Boundary/Node2D/A.shape.a = Vector2(0, 0)
+	$Various/Boundary/Node2D/A.shape.b = Vector2(Globals.SCREEN.x, 0)
+	$Various/Boundary/Node2D/B.shape.a = Vector2(Globals.SCREEN.x, 0)
+	$Various/Boundary/Node2D/B.shape.b = Vector2(Globals.SCREEN.x, Globals.SCREEN.y - 10)
+	$Various/Boundary/Node2D/C.shape.a = Vector2(Globals.SCREEN.x, Globals.SCREEN.y - 10)
+	$Various/Boundary/Node2D/C.shape.b = Vector2(0, Globals.SCREEN.y - 10)
+	$Various/Boundary/Node2D/D.shape.a = Vector2(0, Globals.SCREEN.y - 10)
+	$Various/Boundary/Node2D/D.shape.b = Vector2(0, 0)
 	
 #	for n in $Various/Boundary/DmgNormal.get_children():
 #		print(n.shape.a)
@@ -151,7 +141,7 @@ func _on_resolutionChange():
 	
 	._on_resolutionChange()
 	set_cam_limit()
-	set_boundary_red()
+	set_boundary()
 	create_background()
 	
 	reposLoot()

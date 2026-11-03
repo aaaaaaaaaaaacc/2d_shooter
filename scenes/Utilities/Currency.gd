@@ -9,7 +9,7 @@ var resValue:int
 	
 func do_init_unit():
 	texDim = Vector2($Sprites/Main.texture.get_width() * $Sprites/Main.scale.x, $Sprites/Main.texture.get_height() * $Sprites/Main.scale.y)
-	connectHurtBoxes()
+	xconnectHurtBoxes()
 	do_custom_init()
 	set_stats()
 	
@@ -20,7 +20,7 @@ func _physics_process(delta):
 	velocity = velocity.limit_length(maxSpeed)
 	position += velocity * delta
 	
-func connectHurtBoxes():
+func xconnectHurtBoxes():
 	pass
 	
 func do_custom_init():

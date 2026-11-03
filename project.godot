@@ -415,6 +415,11 @@ _global_script_classes=[ {
 "path": "res://scripts/Proj/Proj_Beam.gd"
 }, {
 "base": "Proj_Base",
+"class": "Proj_BeamC",
+"language": "GDScript",
+"path": "res://scripts/Proj/Proj_Beam_Copy.gd"
+}, {
+"base": "Proj_Base",
 "class": "Proj_Bomb",
 "language": "GDScript",
 "path": "res://scripts/Proj/Proj_Bomb.gd"
@@ -493,6 +498,16 @@ _global_script_classes=[ {
 "class": "Truck_Light",
 "language": "GDScript",
 "path": "res://scripts/Units/Unit_Truck_Light.gd"
+}, {
+"base": "Capital",
+"class": "Unit_Test",
+"language": "GDScript",
+"path": "res://scripts/Units/Unit_Test.gd"
+}, {
+"base": "SM",
+"class": "Unit_Test_SM",
+"language": "GDScript",
+"path": "res://sm/Unit_Test_SM.gd"
 }, {
 "base": "Resource",
 "class": "WeaponData",
@@ -646,6 +661,7 @@ _global_script_class_icons={
 "PlayerSM": "",
 "Proj_Base": "",
 "Proj_Beam": "",
+"Proj_BeamC": "",
 "Proj_Bomb": "",
 "Proj_Bullet": "",
 "Proj_Mace": "",
@@ -662,6 +678,8 @@ _global_script_class_icons={
 "Truck": "",
 "Truck_Heavy": "",
 "Truck_Light": "",
+"Unit_Test": "",
+"Unit_Test_SM": "",
 "WeaponData": "",
 "Weapon_AoE": "",
 "Weapon_Base": "",

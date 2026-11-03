@@ -1,8 +1,9 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://textures/shield_line.png" type="Texture" id=1]
 [ext_resource path="res://scenes/Weapon_Base.tscn" type="PackedScene" id=2]
 [ext_resource path="res://scripts/Weapon_Shield_Dir.gd" type="Script" id=3]
+[ext_resource path="res://scenes/Dmg_Area.tscn" type="PackedScene" id=4]
 
 [sub_resource type="Shader" id=4]
 code = "shader_type canvas_item;
@@ -104,8 +105,8 @@ shader_param/shield_strength = null
 shader_param/energy_speed = 1.5
 shader_param/energy_scale = 10.0
 
-[sub_resource type="RectangleShape2D" id=1]
-extents = Vector2( 6, 36 )
+[sub_resource type="RectangleShape2D" id=8]
+extents = Vector2( 15.25, 74.5 )
 
 [node name="Weapon" instance=ExtResource( 2 )]
 script = ExtResource( 3 )
@@ -142,13 +143,12 @@ visible = false
 
 [node name="ColNodes" type="Position2D" parent="." index="10"]
 
-[node name="Shield" type="Area2D" parent="ColNodes" index="0"]
-collision_layer = 0
-collision_mask = 0
+[node name="Shield" parent="ColNodes" index="0" instance=ExtResource( 4 )]
+dmg_multi = 1.0
 
-[node name="A" type="CollisionShape2D" parent="ColNodes/Shield" index="0"]
-position = Vector2( 60, 0 )
-shape = SubResource( 1 )
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ColNodes/Shield" index="0"]
+position = Vector2( 61.75, -37.5 )
+shape = SubResource( 8 )
 
 [node name="ShieldSupercharge" type="Timer" parent="TimerNodes" index="0"]
 one_shot = true

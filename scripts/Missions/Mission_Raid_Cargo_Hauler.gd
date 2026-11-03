@@ -2,7 +2,7 @@ extends Mission_Base
 class_name Mission_Raid_Cargo_Hauler
 
 const warp_anim_time:float = 0.6
-const mission_time:float = 3.0
+const mission_time:float = 15.0
 const time_until_target_arrives:float = 3.0
 
 #var update_interval:float = 0.1
@@ -52,11 +52,6 @@ func do_process_time(_delta):
 #				n.warp_out_phase_one()
 #			set_mission_condition_success()
 
-func do_init(init_time):
-	maxTime = init_time
-	timeRemain = init_time
-	remaining = amount
-
 func do_setup():
 	var raid_target_group = []
 	raid_target_group.append({"type": handler_s.UnitType.CARGO_HAULER, "name": "CARGO_HAULER", "amount": Globals.rng.randi_range(1, 1), "target": true})
@@ -80,6 +75,7 @@ func setup_targets(unitArray):
 			allUnits.append(target_unit)
 			Globals.add_unit_to_scene(target_unit, Globals.Faction.hostile)
 			target_unit.set_direction(Vector2(dir, 0))
+			target_unit.maxSpeed = 0
 			if unit.target:
 				num_targets += 1
 				target_unit.mark_as_target()

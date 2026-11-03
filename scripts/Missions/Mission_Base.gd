@@ -59,7 +59,9 @@ func do_process_time(_delta):
 			set_mission_condition_success()
 	
 func do_init(init_time):
-	pass
+	maxTime = init_time
+	timeRemain = init_time
+	remaining = amount
 	
 func do_init_mission(handler_mi, handler_sp):
 	handler_m = handler_mi
@@ -132,6 +134,8 @@ func do_start_mission():
 		handler_s.increase_difficulty(15)
 		handler_s.connect_debug_diffi_ui_in_game()
 		handler_s.do_enable()
+		
+		Globals.UI.poi.show_pois()
 
 func set_mission_condition_success():
 	print("set_mission_condition_success()")

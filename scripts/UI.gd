@@ -282,6 +282,10 @@ func update_on_start_mission(mission_class):
 	
 	if missionUI.get_node("VBox/Targets_HP").get_children().size() > 1:
 		missionUI.get_node("VBox/Targets_HP").show()
+		
+	if mission_class.mission_time == 0.0:
+		missionUI.get_node("VBox/Time").hide()
+		missionUI.get_node("VBox/Progress").hide()
 	
 func update_on_success_mission(mission_class):
 	print("update_on_success_mission")

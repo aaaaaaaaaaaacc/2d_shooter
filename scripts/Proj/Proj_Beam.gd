@@ -13,10 +13,11 @@ var fuseColor:Color
 var fuseInterval:float = 0.05
 var isStatic = false
 var isPiercing = false
-var cutIn:int = 5
+var cut_in_px:int = 5
 var hits = 0
 var maxHits = 3
-var collide = Vector2.ZERO
+var collider = Vector2.ZERO
+var colliders:Array = []
 #var impactForce = Vector2.ZERO
 var ticks_til_dmg:float = 0.15
 var ticks_til_rc:float = 0.05
@@ -28,6 +29,7 @@ var deviation:float
 var damaging = []
 	
 func constructProj(weapon):
+	print("adding beam")
 	.constructProj(weapon)
 	beamLength = weapon.beamLength
 	beamWidth = weapon.beamWidth
@@ -42,6 +44,8 @@ func constructProj(weapon):
 func _ready():
 	texDim = Vector2.ZERO
 
+	$ColNodes/DmgNormal.connect("area_entered", self, "_on_DmgArea_entered")
+	$ColNodes/DmgNormal.connect("area_exited", self, "_on_DmgArea_exited")
 	$RayNodes/A.cast_to = Vector2(beamLength, 0)
 	$RayNodes/B.cast_to = Vector2(beamLength, 0)
 	setBeamWidth()
@@ -82,14 +86,104 @@ func setBeamColors(weapon):
 	$BeamLinePos/Real.texture.gradient.colors[1] = weapon.colors[1]
 	$BeamLinePos/Real.texture.gradient.colors[2] = weapon.colors[1].lightened(0.6)
 	$BeamLinePos/Real.texture.gradient.colors[3] = weapon.colors[1]
-
+	
 func _physics_process(_delta):
-#	if lifetime > 0:
-##		print(lifetime)
-#		lifetime -= _delta
-#		if lifetime <= 0:
-##			print("endend")
-#			on_lifetime_timeout()
+#	print("beam phys process, frame: ", Engine.get_idle_frames())
+#	set_position_rotation()
+#	set_beam_dimension()
+#	set_end_fuse(_delta)
+#	process_beam_damage(_delta)
+	
+	
+	set_position_rotation()
+	raycast()
+	set_beam_dimensions()
+	
+
+func set_beam_dimensions():
+	if isPiercing or !colliders.size():
+		$BeamLinePos/Real.points[1] = Vector2(beamLength, 0)
+	else:
+		$BeamLinePos/Real.points[1] = (colliders[colliders.size()-1] - global_position).rotated(-rotation)
+	
+	
+func raycast():
+	print("RAYCAST, frame: ", Engine.get_idle_frames())
+	
+	colliders = []
+	var thin = true
+	var raycast = true
+	
+	while raycast:
+		for ray in $RayNodes.get_children():
+			ray.force_raycast_update()
+			
+			if ray.is_colliding():
+				var area = ray.get_collider()
+				var collider = ray.get_collision_point()
+				print("__new target: ", area.owner.display, "/", area.name)
+				print("____collider: ", collider.round())
+				colliders.append(collider)
+				ray.add_exception(area)
+				ray.force_raycast_update()
+			
+			if thin == true:
+				break
+		if !isPiercing:
+			break
+			
+	for n in $RayNodes.get_children():
+		n.clear_exceptions()
+	
+	
+func on_lifetime_timeout():
+	doBeamFadeOut()
+	
+func set_position_rotation():
+	if isStatic:
+		return
+	if is_instance_valid(origin):
+		global_position = origin.get_node("Muzzle").global_position
+		rotation_degrees = origin.global_rotation_degrees + deviation
+
+func set_beam_dimension():
+	collider = Vector2.ZERO
+	colliders = []
+	var beamEnd = Vector2(beamLength, 0)
+	
+	var shift = Vector2(0, -beamWidth/2)
+	for n in $RayNodes.get_children():
+		shift *= -1
+		if n.is_colliding():
+			collider = n.get_collision_point()
+#			print(collider)
+			colliders.append(collider)
+#			collide.y += 4
+#			print("ray node ", n.name, " with collision point ", collider)
+			if not isPiercing: 
+				beamEnd = (collider - global_position).rotated(-rotation)
+				beamEnd += shift
+#				print("beamend: ", beamEnd)
+			break
+		
+	$ColNodes/DmgNormal/ColShape.shape.extents.x = floor(beamEnd.x/2 + cut_in_px)
+	$ColNodes/DmgNormal/ColShape.position.x = floor(beamEnd.x/2 + cut_in_px)
+	$BeamLinePos/Real.points[1] = beamEnd + Vector2(0, 0)
+	
+func set_end_fuse(_delta):
+	fuseInterval -= _delta
+	if damaging.size():
+#		print("damaging legit")
+		if fuseInterval <= 0.0:
+#			print("fuseInterval legit")
+			fuseInterval = 0.05
+#			setBeamImpactParticle(global_position + $BeamLinePos/Real.points[1].rotated(rotation))
+			
+			for n in colliders:
+				setBeamImpactParticle(n)
+				
+
+func x_physics_process(_delta):
 	
 #	print("lifetime remaining: ", lifetime)
 	#print("____physics_process beam")
@@ -111,24 +205,24 @@ func _physics_process(_delta):
 #			explo.global_position += Vector2(Globals.rng.randi_range(-3, 3), Globals.rng.randi_range(-3, 3))
 #			explo.rotation = -rotation
 	
-	collide = Vector2.ZERO
+	collider = Vector2.ZERO
 	var beamEnd = Vector2(beamLength, 0)
 	
 	var shift = Vector2(0, -beamWidth/2)
 	for n in $RayNodes.get_children():
 		shift *= -1
 		if n.is_colliding():
-			collide = n.get_collision_point()
-#			collide.y += 4
-#			print("ray node ", n.name, " with collision point ", collide)
+			collider = n.get_collision_point()
+#			collider.y += 4
+#			print("ray node ", n.name, " with collision point ", collider)
 			if not isPiercing: 
-				beamEnd = (collide - global_position).rotated(-rotation)
+				beamEnd = (collider - global_position).rotated(-rotation)
 				beamEnd += shift
 #				print("beamend: ", beamEnd)
 			break
 		
-	$ColNodes/DmgNormal/ColShape.shape.extents.x = floor(beamEnd.x/2 + cutIn)
-	$ColNodes/DmgNormal/ColShape.position.x = floor(beamEnd.x/2 + cutIn)
+	$ColNodes/DmgNormal/ColShape.shape.extents.x = floor(beamEnd.x/2 + cut_in_px)
+	$ColNodes/DmgNormal/ColShape.position.x = floor(beamEnd.x/2 + cut_in_px)
 	$BeamLinePos/Real.points[1] = beamEnd + Vector2(0, 0)
 	process_beam_damage(_delta)
 	
@@ -197,41 +291,30 @@ func doBeamFadeOut():
 	var tween = get_tree().create_tween()
 	tween.tween_property($BeamLinePos, "modulate:a", 0.0, dur)
 	tween.tween_property($BeamLinePos, "scale:y", 0.0, dur)
-	
-func on_lifetime_timeout():
-	doBeamFadeOut()
+	tween.tween_callback(self, "queue_free")
 
-func _on_DmgNormal_area_entered(area):
-	print("_on_Beam_area_ENTRY ", area.owner.display, ", area: ", area.name)
+func _on_DmgArea_entered(area):
+	print("_on_Beam_area_ENTRY ", area.owner.display, ", area: ", area.name, ", frame: ", Engine.get_idle_frames())
 	
 	for n in damaging:
 		if n.targetid == area.owner.id:
 			n.area = area
-#			print("switching dmg area")
+			print("already damaging this target")
 			return
 			
-	var target
-	var targetid
 	var dict = {
 		"ticks_til_dmg" : ticks_til_dmg, 
 		"ticks_til_rc": ticks_til_rc,
 		"area": area,
 		"target": null,
 		"dmgZone": area.name,
+		"dmg_multi": area.dmg_multi,
 		"collider": Vector2.ZERO,#ray.get_collision_point(),
 		"targetid": 0,
 		"display": "",
 	}
 	
-	if not isPiercing:
-#		print("not piercing")
-		dict.target = area.owner
-		dict.targetid = dict.target.id
-		dict.display = dict.target.display
-		damaging.append(dict)
-		print("adding target ", dict.display, " #", dict.targetid)
-	else:
-#		print("piercing")
+	if isPiercing:
 		for ray in $RayNodes.get_children():
 			for n in damaging:
 				ray.add_exception(n.area)
@@ -251,8 +334,43 @@ func _on_DmgNormal_area_entered(area):
 				
 		for n in $RayNodes.get_children():
 			n.clear_exceptions()
+	else:
+		dict.target = area.owner
+		dict.targetid = dict.target.id
+		dict.display = dict.target.display
+		damaging.append(dict)
+#		print("adding target ", dict.display, " #", dict.targetid)
+	
+#	if not isPiercing:
+##		print("not piercing")
+#		dict.target = area.owner
+#		dict.targetid = dict.target.id
+#		dict.display = dict.target.display
+#		damaging.append(dict)
+#		print("adding target ", dict.display, " #", dict.targetid)
+#	else:
+##		print("piercing")
+#		for ray in $RayNodes.get_children():
+#			for n in damaging:
+#				ray.add_exception(n.area)
+#			ray.force_raycast_update()
+#			if ray.is_colliding():
+#				dict.target = area.owner
+#				dict.targetid = dict.target.id
+#				dict.display = dict.target.display
+#				var new = true
+#				for n in damaging:
+#					if n.targetid == dict.targetid:
+#						new = false
+#						break
+#				if new:
+#					damaging.append(dict)
+#					print("adding target ", dict.display, " #", dict.targetid)
+#
+#		for n in $RayNodes.get_children():
+#			n.clear_exceptions()
 
-func _on_DmgNormal_area_exited(area):
+func _on_DmgArea_exited(area):
 #	print("_on_Beam_area_EXIT ", area.get_parent().get_parent().display, ", area: ", area.name)
 	for n in damaging:
 #		if n.area.id == area.get_parent().get_parent().id:
@@ -266,7 +384,7 @@ func setBeamImpactParticle(pos):
 	var fuse = Globals.get("BEAM_IMPACT").instance()
 	Globals.curScene.get_node("Various").add_child(fuse)
 	fuse.emitting = true
-	fuse.position = pos + Vector2(cutIn, 0).rotated(rotation)
+	fuse.position = pos + Vector2(cut_in_px, 0).rotated(rotation)
 	fuse.rotation = rotation
 	fuse.process_material.emission_box_extents.y = floor(beamWidth * 0.8)
 	fuse.process_material.scale = fusePartScale
@@ -287,8 +405,9 @@ func process_beam_damage(_delta):
 #		print("ticks_til_dmg: ", n.ticks_til_dmg)
 #		print("ticks_til_rc: ", n.ticks_til_rc)
 		
-		
-		if n.ticks_til_rc <= 0:
+#		print("process_beam_damage")
+		if n.ticks_til_rc <= 0.0:
+#			print("update raycast")
 			n.ticks_til_rc = ticks_til_rc
 			for ray in $RayNodes.get_children():
 				ray.force_raycast_update()
@@ -303,8 +422,10 @@ func process_beam_damage(_delta):
 #			setBeamImpactParticle(n.collider + (Vector2(0, beamWidth/2).rotated(rotation)))
 
 		if n.ticks_til_dmg <= 0:
+#			print("ticks_til_dmg: ", n.ticks_til_dmg)
 			n.ticks_til_dmg = ticks_til_dmg
-			n.target.take_damage(self, Globals.getRawDamage(self.minDmg, self.maxDmg, n.target.dmgZones[n.dmgZone]))
+#			n.target.take_damage(self, Globals.getRawDamage(self.minDmg, self.maxDmg, n.target.dmgZones[n.dmgZone]))
+			n.target.take_damage(self, Globals.getRawDamage(self.minDmg, self.maxDmg, n.dmg_multi))
 #			n.target.checkAggro(shooter)
 			cleanTargetArray()
 

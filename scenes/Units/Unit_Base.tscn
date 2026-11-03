@@ -129,18 +129,6 @@ visible = false
 
 [node name="ColNodes" type="Position2D" parent="."]
 
-[node name="DmgNormal" type="Area2D" parent="ColNodes"]
-collision_layer = 0
-collision_mask = 0
-
-[node name="DmgWeak" type="Area2D" parent="ColNodes"]
-collision_layer = 0
-collision_mask = 0
-
-[node name="DmgStrong" type="Area2D" parent="ColNodes"]
-collision_layer = 0
-collision_mask = 0
-
 [node name="Sight" type="Area2D" parent="."]
 collision_layer = 0
 collision_mask = 0

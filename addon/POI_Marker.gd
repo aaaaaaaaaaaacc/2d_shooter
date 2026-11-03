@@ -8,7 +8,9 @@
 # Its property "origin" should be a node that is always at the center of the screen.
 extends Node2D
 class_name POI_MARKER
-export(String) var visibility_notifier = "VisibilityNotifier2D"
+#export(String) var visibility_notifier = "VisibilityNotifier2D"
+
+onready var target_unit_notifier = target.get_node("VisibilityNotifier2D")
 
 var target
 var context
@@ -16,18 +18,26 @@ var h_screen_size
 var active:bool = false
 var id:int = 0
 
+var delta_interval:float = 0.1
+var delta_interval_now:float = 0.0
 
 func _ready():
 	set_screen_size()
-#	disable()
+	hide()
+	delta_interval_now = delta_interval
+	set_process(false)
 
 func _process(_delta):
-	if target.get_node(visibility_notifier).is_on_screen():
-		hide()
-	elif visible:
-		calc_position()
-	elif not visible:  
-		show()
+	delta_interval_now -= delta_interval
+	if delta_interval_now <= 0:
+		delta_interval_now = delta_interval
+		
+		if target_unit_notifier.is_on_screen():
+			hide()
+		elif visible:
+			calc_position()
+		else:  
+			show()
 
 func set_screen_size():
 	h_screen_size = (OS.window_size / 2)

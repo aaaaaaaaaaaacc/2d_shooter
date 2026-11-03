@@ -22,7 +22,7 @@ func _ready():
 	
 func setupLevel():
 	set_stage_dimensions()
-	set_boundary_red()
+	set_boundary()
 	create_background()
 	set_cam_limit()
 	readyPlayer()
@@ -399,17 +399,18 @@ func handleLevelStartZooming():
 #	doZoom(0.1, 2.0, 0.2)	
 	
 func get_class():
-	return "Stage0"	
+	return "Stage0"
 
-func set_boundary_red():
+func set_boundary():
+	
 #	print("stage set_boundary_red")
-	$Various/Boundary/DmgNormal/A.shape.a = Vector2(0, 0)
-	$Various/Boundary/DmgNormal/A.shape.b = Vector2(Globals.WIDTH, 0)
-	$Various/Boundary/DmgNormal/B.shape.a = Vector2(Globals.WIDTH, 0)
-	$Various/Boundary/DmgNormal/B.shape.b = Vector2(Globals.WIDTH, Globals.MUDY)
-	$Various/Boundary/DmgNormal/C.shape.a = Vector2(Globals.WIDTH, Globals.MUDY)
-	$Various/Boundary/DmgNormal/C.shape.b = Vector2(0, Globals.MUDY)
-	$Various/Boundary/DmgNormal/D.shape.a = Vector2(0, Globals.MUDY)
+	$Various/Boundary/Node2D/A.shape.a = Vector2(0, 0)
+	$Various/Boundary/Node2D/A.shape.b = Vector2(Globals.WIDTH, 0)
+	$Various/Boundary/Node2D/B.shape.a = Vector2(Globals.WIDTH, 0)
+	$Various/Boundary/Node2D/B.shape.b = Vector2(Globals.WIDTH, Globals.MUDY)
+	$Various/Boundary/Node2D/C.shape.a = Vector2(Globals.WIDTH, Globals.MUDY)
+	$Various/Boundary/Node2D/C.shape.b = Vector2(0, Globals.MUDY)
+	$Various/Boundary/Node2D/D.shape.a = Vector2(0, Globals.MUDY)
 #	$Various/Boundary/DmgNormal/D.shape.b = Vector2(0, 0)
 #
 #	for n in $Various/Boundary/DmgNormal.get_children():

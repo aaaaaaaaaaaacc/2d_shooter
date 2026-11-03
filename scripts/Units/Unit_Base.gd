@@ -59,7 +59,7 @@ func do_init_unit():
 	set_stats()
 	setMass()
 
-	Globals.connectHurtBoxes(self)
+	connectHurtBoxes()
 	
 #	if has_node("Jump"):
 #		$Jump.set_as_toplevel(true)
@@ -439,8 +439,8 @@ func set_inactive():
 #	if debug_menu_row != null and is_instance_valid(debug_menu_row):
 #		debug_menu_row.hide()
 
-	if target_indicator and is_instance_valid(target_indicator):
-		target_indicator.disable()
+#	if target_indicator and is_instance_valid(target_indicator):
+#		target_indicator.disable()
 	
 func setUnitFacing():
 	return

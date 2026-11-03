@@ -80,8 +80,8 @@ func crash_step_two():
 	crash_tilt_degrees = 0.0
 	crash_rotation_direction = spin_direction
 	
-	print("spin dir: ", spin_direction)
-	print("crash rot dir: ", crash_rotation_direction)
+#	print("spin dir: ", spin_direction)
+#	print("crash rot dir: ", crash_rotation_direction)
 
 	crash_rotation_speed = 0.0
 	crash_rotation_accel = rand_range(CRASH_ROT_ACCEL_MIN, CRASH_ROT_ACCEL_MAX) * spin_direction

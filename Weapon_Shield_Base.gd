@@ -37,7 +37,6 @@ func connect_shield_timer_signals():
 	$TimerNodes/ShieldBreakUpdateTimer.connect("timeout", self, "_ShieldBreakUpdateTimer_timeout")
 	if shieldFastCharge > 0.0:
 		$TimerNodes/ShieldSupercharge.connect("timeout", self, "_on_Supercharge_timeout")
-	
 
 func construct(init_type, init_display, stats):
 	type = init_type
@@ -52,6 +51,15 @@ func construct(init_type, init_display, stats):
 func set_shield_base_stats():
 	for key in baseStats:
 		self[key] = baseStats[key]
+	
+func _physics_process(_delta):
+	if has_ControlNodes:
+		handleControlNodes()
+	
+func handleControlNodes():
+	for n in $ControlNodes.get_children():
+		n.rect_position = global_position + n.offset
+	pass
 #
 #func connectHurtBoxes():
 ##	print("connectHurtBoxes for: ", self.display)
@@ -62,18 +70,37 @@ func set_shield_base_stats():
 #	if area.owner.is_in_group("isUnit"):
 #		return
 #	handleImpact(area, self.dmgZones["Shield"])
+
+func connectHurtBoxes():
+#	print("connectHurtBoxes: ", display)
+#	
+	connect("_damage_taken", self, "_on_damage_taken")
+	for col_area in get_node("ColNodes").get_children():
+		if col_area.get_child_count():
+			if col_area.name == "Shield":
+				col_area.connect("area_entered", self, "_on_Shield_area_entered", [col_area])
+				col_area.connect("area_exited", self, "_on_area_exited")
+				
+func _on_Shield_area_entered(area:Area2D, col_area):
+#	print(area.owner.display, "-", area.name, " ENTER ", self.display, "/", name, " frame: ", Engine.get_idle_frames())
+	if not area.owner.is_in_group("isUnit"):
+		handleImpact(area, col_area)
 	
 func _on_area_exited(area):
 	pass
 	
-func _physics_process(_delta):
-	if has_ControlNodes:
-		handleControlNodes()
-	
-func handleControlNodes():
-	for n in $ControlNodes.get_children():
-		n.rect_position = global_position + n.offset
-	pass
+func handleImpact(area, impacted_area):
+	var impact_cause = area.owner
+
+	if impact_cause.canExplodeOnContact():
+		impact_cause.explode()
+		return
+	if impact_cause.is_in_group("isShield") or impact_cause.is_in_group("isMount"):
+		return
+
+	var dmgObj = impact_cause.getDamageObject()
+	take_damage(dmgObj, Globals.getRawDamage(dmgObj.minDmg, dmgObj.maxDmg, impacted_area.dmg_multi))
+	impact_cause.postImpacting()
 
 func is_in_active_burst():
 	return false
@@ -292,12 +319,12 @@ func addShieldExplosion(damage, pos, angle):
 	Globals.curScene.get_node("Various").add_child(explo)
 
 func handle_shield_overflow_damage(entity, remDmg):
-	print("handle_hull_damage on SHIELD")
+#	print("handle_shield_overflow_damage")
 	self.shooter.take_damage(entity, remDmg)
 	return
 	
 func add_shield_bar(size:float = 1.0):
-	print("add_shield_bar on ", self.display)
+#	print("add_shield_bar on ", self.display)
 	shieldbar = Globals.SHIELDBAR.instance()
 	shieldbar.offset = Vector2(0, 80)
 	var bar = shieldbar.get_node("ProgressBar")

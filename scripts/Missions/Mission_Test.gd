@@ -22,29 +22,32 @@ func mission_final_setup_self():
 	do_setup()
 	
 	Globals.PLAYER.connect("_has_warped_in", self, "do_start_mission")
-
-func do_init(init_time):
-	maxTime = init_time
-	timeRemain = init_time
-	remaining = amount
+	
+func do_start_mission():
+	.do_start_mission()
+	
+	handler_s.do_disable()
 	
 func do_setup():
-	var attacker_group = []
-	attacker_group.append({"name": "DRONE_SHOTGUN", "amount": Globals.rng.randi_range(1, 1), "target": false})
-#	attacker_group.append({"name": "FRIGATE", "amount": Globals.rng.randi_range(1, 1), "target": false})
-	setup_attackers(attacker_group)
-	
+	var unit_group = []
+	unit_group.append({"type": handler_s.UnitType.UNIT_TEST, "name": "UNIT_TEST", "amount": Globals.rng.randi_range(1, 1), "target": true})
+	setup_attackers(unit_group)
+#
+#
+#			var target_unit = handler_s.get_unit_instance(unit.type)
+#			allUnits.append(target_unit)
+#			Globals.add_unit_to_scene(target_unit, Globals.Faction.hostile)
+#			target_unit.set_direction(Vector2(dir, 0))
+#			target_unit.maxSpeed = 0
+			
+			
+			
 func setup_attackers(unitArray):
-	for unit in unitArray:
-		for i in unit.amount:
-			var attacker = handler_s.get_unit_instance(unit.type)
-			var target = Globals.getRandomEntry(targets)
-			Globals.curScene.add_unit_to_scene("Enemy_Units", attacker)
-			Globals.set_hostile(attacker)
-			attacker.do_init_unit()
-			attacker.set_armaments()
-			attacker.set_direction(Vector2.RIGHT)
-#			attacker.maxSpeed = 0
+	for entry in unitArray:
+		for i in entry.amount:
+			var unit = handler_s.get_unit_instance(entry.type)
+			Globals.add_unit_to_scene(unit, Globals.Faction.hostile)
+			unit.set_direction(Vector2.RIGHT)
 			
 			var x:int = Globals.WIDTH/2
 			var y:int = Globals.HEIGHT/2
@@ -52,13 +55,13 @@ func setup_attackers(unitArray):
 			var pos = Globals.PLAYER.global_position + Vector2(-350, -150) + Vector2(-0, -200)
 			pos.x += 400 * i
 			
-			attacker.position = pos
-			attacker.add_health_bar()
+			unit.position = pos
+			unit.add_health_bar()
 			
-			if attacker.can_warp_in():
-				attacker.setup_delayed_warp_in(time_until_target_arrives+1)
+			if unit.can_warp_in():
+				unit.setup_delayed_warp_in(time_until_target_arrives+1)
 			else:
-				attacker.set_active()
+				unit.set_active()
 
 func do_process(_delta):
 #	if inArea:

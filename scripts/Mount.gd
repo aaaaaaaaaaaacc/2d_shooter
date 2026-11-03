@@ -21,14 +21,13 @@ func _ready():
 func take_damage(a, b):
 	.take_damage(a, b)
 	
-	
 func do_init_mount():
 	texDim = Vector2($Sprites/Main.texture.get_width() * $Sprites/Main.scale.x, $Sprites/Main.texture.get_height() * $Sprites/Main.scale.y)
 	if has_node("Weapon"):
 		maxHealth = health
 		add_to_group("isMount")
 		init_mount_debug_arcs()
-		Globals.connectHurtBoxes(self)
+		connectHurtBoxes()
 		add_health_bar(0.5)
 	else:
 		health = 0

@@ -24,7 +24,8 @@ enum UnitType {
 	BOSS,
 	DRONE_SHIELD,
 	DRONE_SHOTGUN,
-	DRONE_KAMIKAZE
+	DRONE_KAMIKAZE,
+	UNIT_TEST,
 }
 # Load enemy scenes on game startup
 #const TRUCK_LIGHT = preload("res://scenes/Units/Unit_Truck_Light.tscn")
@@ -69,9 +70,8 @@ const UNIT_SCENES = {
 	UnitType.DRONE_SHIELD: preload("res://scenes/Units/Unit_DroneShield.tscn"),
 	UnitType.DRONE_SHOTGUN: preload("res://scenes/Units/Unit_Drone_Shotgun.tscn"),
 	UnitType.DRONE_KAMIKAZE: preload("res://scenes/Units/Unit_Drone_Kamikaze.tscn"),
+	UnitType.UNIT_TEST: preload("res://scenes/Units/Unit_Test.tscn"),
 }
-
-
 
 var player
 var wave = Array()
@@ -364,7 +364,7 @@ func _on_enemy_from_wave_destroyed(enemy):
 #	print("enemy strength: ", enemy_str_cur, "/", enemy_str_max)
 
 func _on_diffi_add_timer_timeout():
-	print("_on_diffi_add_timer_timeout")
+#	print("_on_diffi_add_timer_timeout")
 	increase_difficulty(1)
 	diffi_add_timer.start()
 	

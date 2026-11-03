@@ -42,6 +42,18 @@ func mission_loader():
 	
 func get_mission_dict():
 	return {
+		"mission_test":
+			{
+			"scene_url": "res://scenes/Missions/Mission_Base.tscn",
+			"script_url": "res://scripts/Missions/Mission_Test.gd",
+			"scene": null,
+		},
+		"mission_raid_convoy_light":
+		{
+			"scene_url": "res://scenes/Missions/Mission_Base.tscn",
+			"script_url": "res://scripts/Missions/Mission_Raid_Light_Convoy.gd",
+			"scene": null,
+		},
 		"mission_raid_cargo_hauler":
 			{
 			"scene_url": "res://scenes/Missions/Mission_Base.tscn",
@@ -54,12 +66,6 @@ func get_mission_dict():
 			"script_url": "res://scripts/Missions/Mission_Shop.gd",
 			"scene": null,
 		},
-		"mission_test":
-			{
-			"scene_url": "res://scenes/Missions/Mission_Base.tscn",
-			"script_url": "res://scripts/Missions/Mission_Test.gd",
-			"scene": null,
-		},
 		"mission_control_area":
 		{
 			"scene_url": "res://scenes/Missions/Mission_Base.tscn",
@@ -70,12 +76,6 @@ func get_mission_dict():
 		{
 			"scene_url": "res://scenes/Missions/Mission_Base.tscn",
 			"script_url": "res://scripts/Missions/Mission_Survive_Time.gd",
-			"scene": null,
-		},
-		"mission_raid_convoy_light":
-		{
-			"scene_url": "res://scenes/Missions/Mission_Base.tscn",
-			"script_url": "res://scripts/Missions/Mission_Raid_Light_Convoy.gd",
 			"scene": null,
 		},
 		"mission_protect_cargo_hauler":

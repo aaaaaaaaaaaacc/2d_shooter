@@ -82,14 +82,16 @@ func do_init_weapon():
 	$Muzzle/AnimatedSprite.stop()
 	$Muzzle/AnimatedSprite.hide()
 	$Muzzle/AnimatedSprite.frame = 0
-	Globals.connectHurtBoxes(self)
+	connectHurtBoxes()
 	drawAimVector()
 	do_sub_init_weapon()
 	check_init_aimdebug()
 			
 func do_sub_init_weapon():
-	
 	pass
+	
+func connectHurtBoxes():
+	return false
 	
 func check_init_aimdebug():
 	if Globals.AIMDEBUG and faction != 0:

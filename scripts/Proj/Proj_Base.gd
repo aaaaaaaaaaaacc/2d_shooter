@@ -48,6 +48,9 @@ func _ready():
 	set_physics_process(true)
 
 func _physics_process(delta):
+	process_lifetime(delta)
+	
+func process_lifetime(delta):
 	if lifetime > 0:
 		lifetime -= delta
 		if lifetime <= 0:
@@ -67,7 +70,7 @@ func constructProj(weapon):
 	scale = Vector2(weapon.projSize, weapon.projSize)
 	impactForce = weapon.recoilForce
 	
-	lifetime *= rand_range(0.8, 1.2)
+#	lifetime *= rand_range(0.8, 1.2)
 	
 func on_lifetime_timeout():
 	match self.type:
@@ -75,10 +78,10 @@ func on_lifetime_timeout():
 			doFadeOut()
 		2: 
 			explode()
-		4:
-			doFadeOut()
 		6:
 			doFadeOut()
+		7: 
+			explode()
 		
 func doFadeOut():
 	var tween = get_tree().create_tween()
@@ -171,7 +174,7 @@ func doAreaAttack():
 		for area in areas:
 #			print("hitting: ", area.owner.display)
 			if not area.owner.has_active_omni_shield():
-				area.owner.take_damage(self, Globals.getRawDamage(self.minDmg, self.maxDmg, area.owner.dmgZones[area.name]))
+				area.owner.take_damage(self, Globals.getRawDamage(self.minDmg, self.maxDmg, area.dmg_multi))
 #			area.owner.checkAggro(shooter)
 		queue_free()
 

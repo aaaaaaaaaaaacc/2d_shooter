@@ -2,7 +2,7 @@ extends Mission_Base
 class_name Mission_Raid_Light_Convoy
 
 const warp_anim_time:float = 0.6
-const mission_time:float = 3.0
+const mission_time:float = 0.0
 const time_until_target_arrives:float = 3.0
 
 func _ready():
@@ -23,6 +23,8 @@ func mission_final_setup_self():
 	do_setup()
 	
 func do_process_time(_delta):
+	if mission_time == 0.0:
+		return
 	if timeRemain > 0.0:
 		timeRemain = max(0, timeRemain - _delta)
 		timerLabel.text = "%.2f" % timeRemain
@@ -30,11 +32,6 @@ func do_process_time(_delta):
 		
 	if timeRemain <= 0.0:
 		set_mission_condition_success()
-		
-func do_init(init_time):
-	maxTime = init_time
-	timeRemain = init_time
-	remaining = amount
 	
 func do_setup():
 	var raid_target_group = []
@@ -59,8 +56,6 @@ func setup_targets(unitArray):
 	if dir == 1:
 		startX = 0
 	else: startX = Globals.WIDTH
-	
-	timer
 	
 	
 	for unit in unitArray:#mark unit as target

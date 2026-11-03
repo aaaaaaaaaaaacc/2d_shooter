@@ -32,7 +32,7 @@ func constructProj(weapon):
 #	offset = Globals.rng.randi_range(-25, 25)
 	amplitude = 2.0
 	frequency = 0.4 + rand_range(-0.1, 0.1)
-	speed = 0
+#	speed = 0
 #	var speeeed = 350.0
 
 func setHomingTarget(homingTarget):
