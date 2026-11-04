@@ -19,6 +19,8 @@ var maxHits = 3
 var collider = Vector2.ZERO
 var colliders:Array = []
 #var impactForce = Vector2.ZERO
+var delta_til_dmg:float = 0.15
+var delta_til_rc:float = 0.05
 var ticks_til_dmg:float = 0.15
 var ticks_til_rc:float = 0.05
 var counter:int = 0
@@ -48,6 +50,7 @@ func _ready():
 	$ColNodes/DmgNormal.connect("area_exited", self, "_on_DmgArea_exited")
 	$RayNodes/A.cast_to = Vector2(beamLength, 0)
 	$RayNodes/B.cast_to = Vector2(beamLength, 0)
+	$RayNodes/C.cast_to = Vector2(beamLength, 0)
 	setBeamWidth()
 	beamFadeInOne()
 	
@@ -58,6 +61,7 @@ func set_friendly():
 	.set_friendly()
 	$RayNodes/A.set_collision_mask_bit(1, true)
 	$RayNodes/B.set_collision_mask_bit(1, true)
+	$RayNodes/C.set_collision_mask_bit(1, true)
 	
 func set_hostile():
 #	faction = 1
@@ -66,6 +70,7 @@ func set_hostile():
 	.set_hostile()
 	$RayNodes/A.set_collision_mask_bit(0, true)
 	$RayNodes/B.set_collision_mask_bit(0, true)
+	$RayNodes/C.set_collision_mask_bit(0, true)
 	
 func set_neutral():
 #	faction = 2
@@ -79,7 +84,8 @@ func setBeamWidth():
 	$ColNodes/DmgNormal/ColShape.shape.extents.y = floor(beamWidth/2)
 	
 	$RayNodes/A.position.y = -beamWidth/2
-	$RayNodes/B.position.y = beamWidth/2
+	$RayNodes/B.position.y = 0
+	$RayNodes/C.position.y = beamWidth/2
 	
 func setBeamColors(weapon):
 #	print(weapon.colors)
@@ -87,7 +93,7 @@ func setBeamColors(weapon):
 	$BeamLinePos/Real.texture.gradient.colors[2] = weapon.colors[1].lightened(0.6)
 	$BeamLinePos/Real.texture.gradient.colors[3] = weapon.colors[1]
 	
-func _physics_process(_delta):
+func _physics_process(delta):
 #	print("beam phys process, frame: ", Engine.get_idle_frames())
 #	set_position_rotation()
 #	set_beam_dimension()
@@ -96,48 +102,37 @@ func _physics_process(_delta):
 	
 	
 	set_position_rotation()
-	raycast()
+	raycast(delta)
 	set_beam_dimensions()
+	process_damage(delta)
 	
+func process_damage(delta):
+	for n in colliders:
+		n.delta_til_dmg -= delta
+		if n.delta_til_dmg <= 0:
+			n.delta_til_dmg += delta_til_dmg
+			print("damaging: ", n.area.owner.display, " on frame ", Engine.get_idle_frames())
+			n.area.owner.take_damage(self, Globals.getRawDamage(self.minDmg, self.maxDmg, n.area.dmg_multi))
+			
+			
+	
+func getPointOfImpact(impactedEntity):
+	for n in colliders:
+		if n.targetid == impactedEntity.id:
+			return n.collision_point + (Vector2(0, beamWidth/2).rotated(rotation))
+	print("no collision_point!")
+	return Vector2.ZERO
+	
+#func getPointOfImpact(impactedEntity):
+#	for n in damaging:
+#		if n.targetid == impactedEntity.id:
+#			#print("hitting ", n.area.owner.display, " at collider ", n.collider)
+#			return n.collider + (Vector2(0, beamWidth/2).rotated(rotation))
+#	print("no collider!")
+#	return Vector2.ZERO
 
-func set_beam_dimensions():
-	if isPiercing or !colliders.size():
-		$BeamLinePos/Real.points[1] = Vector2(beamLength, 0)
-	else:
-		$BeamLinePos/Real.points[1] = (colliders[colliders.size()-1] - global_position).rotated(-rotation)
-	
-	
-func raycast():
-	print("RAYCAST, frame: ", Engine.get_idle_frames())
-	
-	colliders = []
-	var thin = true
-	var raycast = true
-	
-	while raycast:
-		for ray in $RayNodes.get_children():
-			ray.force_raycast_update()
-			
-			if ray.is_colliding():
-				var area = ray.get_collider()
-				var collider = ray.get_collision_point()
-				print("__new target: ", area.owner.display, "/", area.name)
-				print("____collider: ", collider.round())
-				colliders.append(collider)
-				ray.add_exception(area)
-				ray.force_raycast_update()
-			
-			if thin == true:
-				break
-		if !isPiercing:
-			break
-			
-	for n in $RayNodes.get_children():
-		n.clear_exceptions()
-	
-	
-func on_lifetime_timeout():
-	doBeamFadeOut()
+
+
 	
 func set_position_rotation():
 	if isStatic:
@@ -146,6 +141,91 @@ func set_position_rotation():
 		global_position = origin.get_node("Muzzle").global_position
 		rotation_degrees = origin.global_rotation_degrees + deviation
 
+func set_beam_dimensions():
+	if isPiercing or !colliders.size():
+		$BeamLinePos/Real.points[1] = Vector2(beamLength, 0)
+	else:
+		$BeamLinePos/Real.points[1] = (colliders[colliders.size()-1].collision_point - global_position).rotated(-rotation)
+	
+func raycast(delta):
+#
+#	delta_til_rc -= _delta
+#	if delta_til_rc <= 0:
+#		delta_til_rc += 0.05
+#	else: return
+	
+	#print("RAYCAST, frame: ", Engine.get_idle_frames())
+	
+	var thin = true
+	if thin:
+		do_raycast($RayNodes/B)
+	else:
+		do_raycast($RayNodes/A)
+		do_raycast($RayNodes/C)
+
+func do_raycast(ray):
+	
+	var delta_colliders = []
+	var raycasting = true
+	
+	for n in colliders:
+		n.confirmed = false
+	
+	while raycasting:
+		ray.force_raycast_update()
+		
+		if ray.is_colliding():
+			var new:bool = true
+			
+			var area = ray.get_collider()
+			var area_instance_id = area.get_instance_id()
+			var collision_point = ray.get_collision_point()
+			
+			for n in colliders:
+				if n.area_instance_id == area_instance_id:
+					print("setting old target as still valid")
+					new = false
+					n.confirmed = true
+					n.collision_point = collision_point
+				
+			if new:
+				print("adding new target)")
+				var dict = get_new_collider_dict()
+				dict.targetid = area.owner.id
+				dict.area = area
+				dict.area_instance_id = area_instance_id
+				dict.collision_point = collision_point
+				dict.confirmed = true
+#				print("__new target: ", area.owner.display, "/", area.name)
+#				print("____collider: ", collision_point.round())
+				colliders.append(dict)
+				ray.add_exception(area)
+				ray.force_raycast_update()
+			
+		if !isPiercing:
+			break
+
+	ray.clear_exceptions()
+	
+	for i in range(colliders.size() - 1, -1, -1):
+		if colliders[i].confirmed == false:
+			print("removing old target")
+			colliders.remove(i)
+	
+	
+func get_new_collider_dict():
+	return {
+		"targetid": 0,
+		"area": null,
+		"area_instance_id": 0,
+		"delta_til_dmg": delta_til_dmg,
+		"collision_point": Vector2.ZERO,
+		"confirmed": false
+	}
+
+func on_lifetime_timeout():
+	doBeamFadeOut()
+	
 func set_beam_dimension():
 	collider = Vector2.ZERO
 	colliders = []
@@ -444,7 +524,7 @@ func cleanTargetArray():
 func getAttackAngle(impactedEntity):
 	return rotation-PI
 	
-func getPointOfImpact(impactedEntity):
+func xgetPointOfImpact(impactedEntity):
 	for n in damaging:
 		if n.targetid == impactedEntity.id:
 			#print("hitting ", n.area.owner.display, " at collider ", n.collider)
