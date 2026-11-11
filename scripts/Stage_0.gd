@@ -12,21 +12,18 @@ var enemies = Array()
 var level_type:int
 
 func _ready():
-	print("ready world")
+	pass
+	
+func set_level_number():
 	Globals.GAMESCREEN.cur_lvl_number = 1
 	level_type = 1
-#	Globals.GAMESCREEN.get_node("Menu_BG").hide()
-	setupLevel()
-#	Engine.time_scale = 0.25
-#	$Player.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT/2)
 	
 func setupLevel():
+	set_level_number()
 	set_stage_dimensions()
 	set_boundary()
 	create_background()
 	set_cam_limit()
-	readyPlayer()
-	positionCamera()
 	$UI.showAIUI()
 	$UI/Pause_details/MC/VBC/PC/HBC2/GFX_settings.connectResolutionChange()
 #	Globals.init_resolution()
@@ -556,11 +553,11 @@ func readyPlayer():
 #		trans.name = "RemoteTransform"
 #		player.add_child(trans)
 #		trans.remote_path = "../../../CamA"
-	player.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT/2)
-	player.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT-400)
-#	player.position = Vector2(Globals.WIDTH - 400, Globals.HEIGHT-400)
 #	player.hide()
 #	player.set_inactive()
+#	player.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT/2)
+#	player.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT-400)
+#	player.position = Vector2(Globals.WIDTH - 400, Globals.HEIGHT-400)
 	player.setup_delayed_warp_in(1.0)
 	
 func positionCamera():

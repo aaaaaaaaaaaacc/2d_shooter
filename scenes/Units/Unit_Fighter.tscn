@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=2]
+[gd_scene load_steps=14 format=2]
 
 [ext_resource path="res://scenes/Mount.tscn" type="PackedScene" id=1]
 [ext_resource path="res://textures/units/fighter.png" type="Texture" id=2]
@@ -7,7 +7,8 @@
 [ext_resource path="res://sm/Fighter_SM.gd" type="Script" id=5]
 [ext_resource path="res://scripts/Units/Unit_Fighter.gd" type="Script" id=6]
 [ext_resource path="res://scenes/Thrust_Part.tscn" type="PackedScene" id=7]
-[ext_resource path="res://resources/light_fighter.tres" type="Resource" id=8]
+[ext_resource path="res://resources/fighter.tres" type="Resource" id=8]
+[ext_resource path="res://scenes/Dmg_Area.tscn" type="PackedScene" id=9]
 
 [sub_resource type="Gradient" id=8]
 offsets = PoolRealArray( 0, 0.493506, 1 )
@@ -31,8 +32,8 @@ scale = 5.0
 scale_random = 0.5
 color_ramp = SubResource( 7 )
 
-[sub_resource type="RectangleShape2D" id=6]
-extents = Vector2( 19, 5 )
+[sub_resource type="RectangleShape2D" id=10]
+extents = Vector2( 18.75, 6.5 )
 
 [node name="Fighter" instance=ExtResource( 3 )]
 script = ExtResource( 6 )
@@ -46,6 +47,10 @@ MIN_DIST_TO_CLOSE_STATE = 600
 NEW_ATTACK_RUN_MIN_DIST = 100
 WITHDRAW_MOVE_TARGET_DIST = 900
 DISENGAGE_MOVE_TARGET_DIST = 500
+STATE_SWITCH_COOLDOWN = 0.6
+CRASH_MIN_DWELL = 0.8
+CRASH_RECOVER_DIST = 220.0
+TARGET_LOST_DIST_MULT = 2.0
 
 [node name="ThrusterNodes" parent="." index="2"]
 position = Vector2( 0, -1 )
@@ -88,8 +93,10 @@ position = Vector2( 0, -1 )
 [node name="ColNodes" parent="." index="12"]
 position = Vector2( 0, -1 )
 
-[node name="A" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="0"]
-position = Vector2( 1, 2 )
-shape = SubResource( 6 )
+[node name="Node2D" parent="ColNodes" index="0" instance=ExtResource( 9 )]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ColNodes/Node2D" index="0"]
+position = Vector2( -1, 2 )
+shape = SubResource( 10 )
 
 [editable path="ThrusterNodes/Aft/Particle2D"]

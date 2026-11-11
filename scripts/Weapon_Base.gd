@@ -5,6 +5,7 @@ var type:int
 var projSize:float
 var projNumber:int
 var burst:int
+var isPiercing:bool
 var rof:float
 var minDmg:int
 var maxDmg:int

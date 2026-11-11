@@ -104,17 +104,17 @@ func get_random_mission():
 
 func setup_mission(mission_dict_entry):
 	var logic;
-	var mission_n = mission_dict_entry["scene"].instance()
+	var mission_instance = mission_dict_entry["scene"].instance()
 
 	logic = load(mission_dict_entry["script_url"]).new()
 	logic.set_base_props()
 	logic.print_props()
-	mission_n.set_mission_logic(logic)
+	mission_instance.set_mission_logic(logic)
 	
-	mission_n.logic.do_init_mission(Globals.handler_mission, Globals.handler_spawner)
-	mission_n.logic.set_base_props()
-	mission_n.logic.do_setup_mission()
-	return mission_n
+	mission_instance.logic.do_init_mission(Globals.handler_mission, Globals.handler_spawner)
+	mission_instance.logic.set_base_props()
+	mission_instance.logic.do_setup_mission()
+	return mission_instance
 
 func _physics_process(delta):
 	pass

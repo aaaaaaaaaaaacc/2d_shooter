@@ -20,7 +20,6 @@ texture = ExtResource( 1 )
 [node name="ColNodes" type="Position2D" parent="."]
 
 [node name="Node2D" parent="ColNodes" instance=ExtResource( 3 )]
-dmg_multi = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ColNodes/Node2D"]
 position = Vector2( 0, 1 )

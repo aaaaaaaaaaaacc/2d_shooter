@@ -12,15 +12,14 @@ var fusePartScale:float = 0.0
 var fuseColor:Color
 var fuseInterval:float = 0.05
 var isStatic = false
-var isPiercing = false
 var cut_in_px:int = 5
 var hits = 0
 var maxHits = 3
 var collider = Vector2.ZERO
 var colliders:Array = []
 #var impactForce = Vector2.ZERO
-var delta_til_dmg:float = 0.15
-var delta_til_rc:float = 0.05
+var delta_til_dmg:float = 0.20
+var delta_til_rc:float = 0.1
 var ticks_til_dmg:float = 0.15
 var ticks_til_rc:float = 0.05
 var counter:int = 0
@@ -31,7 +30,7 @@ var deviation:float
 var damaging = []
 	
 func constructProj(weapon):
-	print("adding beam")
+#	print("adding beam")
 	.constructProj(weapon)
 	beamLength = weapon.beamLength
 	beamWidth = weapon.beamWidth
@@ -46,8 +45,8 @@ func constructProj(weapon):
 func _ready():
 	texDim = Vector2.ZERO
 
-	$ColNodes/DmgNormal.connect("area_entered", self, "_on_DmgArea_entered")
-	$ColNodes/DmgNormal.connect("area_exited", self, "_on_DmgArea_exited")
+#	$ColNodes/DmgNormal.connect("area_entered", self, "_on_DmgArea_entered")
+#	$ColNodes/DmgNormal.connect("area_exited", self, "_on_DmgArea_exited")
 	$RayNodes/A.cast_to = Vector2(beamLength, 0)
 	$RayNodes/B.cast_to = Vector2(beamLength, 0)
 	$RayNodes/C.cast_to = Vector2(beamLength, 0)
@@ -108,10 +107,10 @@ func _physics_process(delta):
 	
 func process_damage(delta):
 	for n in colliders:
-		n.delta_til_dmg -= delta
-		if n.delta_til_dmg <= 0:
-			n.delta_til_dmg += delta_til_dmg
-			print("damaging: ", n.area.owner.display, " on frame ", Engine.get_idle_frames())
+		n.delta_til_dmg += delta
+		if n.delta_til_dmg >= delta_til_dmg:
+			n.delta_til_dmg -= delta_til_dmg
+#			print("damaging: ", n.area.owner.display, " on frame ", Engine.get_idle_frames())
 			n.area.owner.take_damage(self, Globals.getRawDamage(self.minDmg, self.maxDmg, n.area.dmg_multi))
 			
 			
@@ -130,9 +129,6 @@ func getPointOfImpact(impactedEntity):
 #			return n.collider + (Vector2(0, beamWidth/2).rotated(rotation))
 #	print("no collider!")
 #	return Vector2.ZERO
-
-
-
 	
 func set_position_rotation():
 	if isStatic:
@@ -166,30 +162,33 @@ func raycast(delta):
 func do_raycast(ray):
 	
 	var delta_colliders = []
-	var raycasting = true
+	var hit:bool = false
 	
 	for n in colliders:
 		n.confirmed = false
 	
-	while raycasting:
+	while true:
+		hit = false
 		ray.force_raycast_update()
 		
 		if ray.is_colliding():
 			var new:bool = true
+			hit = true
 			
 			var area = ray.get_collider()
+			ray.add_exception(area)
 			var area_instance_id = area.get_instance_id()
 			var collision_point = ray.get_collision_point()
 			
 			for n in colliders:
 				if n.area_instance_id == area_instance_id:
-					print("setting old target as still valid")
+#					print("setting old target as still valid")
 					new = false
 					n.confirmed = true
 					n.collision_point = collision_point
 				
 			if new:
-				print("adding new target)")
+#				print("adding new target)")
 				var dict = get_new_collider_dict()
 				dict.targetid = area.owner.id
 				dict.area = area
@@ -199,10 +198,10 @@ func do_raycast(ray):
 #				print("__new target: ", area.owner.display, "/", area.name)
 #				print("____collider: ", collision_point.round())
 				colliders.append(dict)
-				ray.add_exception(area)
-				ray.force_raycast_update()
 			
 		if !isPiercing:
+			break
+		elif !hit:
 			break
 
 	ray.clear_exceptions()

@@ -149,7 +149,6 @@ visible = false
 [node name="ColNodes" type="Position2D" parent="." index="10"]
 
 [node name="Shield" parent="ColNodes" index="0" instance=ExtResource( 6 )]
-dmg_multi = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ColNodes/Shield" index="0"]
 shape = SubResource( 11 )

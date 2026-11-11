@@ -20,9 +20,7 @@ func adjust_stats_res():
 ##	if $SM.state == $SM.states.crash:
 ##		return
 #
-#	set_interest()
-#	set_danger()
-#	choose_direction()
+#	handle_steering_intentions(_delta)
 #	accel = chosen_dir.rotated(rotation) * maxSpeed
 #	accel = accel.limit_length(maxSpeed)
 #	velocity += accel * _delta

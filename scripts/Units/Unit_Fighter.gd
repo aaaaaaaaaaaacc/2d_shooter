@@ -7,6 +7,17 @@ const CRASH_ROT_ACCEL_MIN := 0.3
 const CRASH_ROT_ACCEL_MAX := 0.5
 const CRASH_ROT_SPEED_MAX := 10.0
 
+# ── Flight model ─────────────────────────────────────────────────────────────
+const MOVE_AGILITY: float = 10.0              # turn authority (was a local 20.0)
+const MOVE_TURN_RATE_BASE_DEG: float = 200.0  # heading change, deg/s, at agility 20
+const MOVE_SPEED_RELAX: float = 1.5           # 1/s convergence of airspeed to target
+const MOVE_MIN_SPEED_FRAC: float = 0.55       # speed floor at a full 180° reversal
+const MOVE_STEER_EVERY: int = 3               # frames between steering recomputes
+#const MOVE_DIR_EPS: float = 0.0001
+
+var _airspeed: float = 0.0                    # scalar speed actually being carried
+var _steer_countdown: int = 0
+
 var display = "Fighter"
 	
 func do_specific_unit_init():
@@ -18,7 +29,6 @@ func do_specific_unit_init():
 	velocity = (moveTarget - global_position).normalized() * maxSpeed/2
 	accel = velocity
 	rotation = velocity.angle()
-	enginePower = maxSpeed
 	
 func _ready():
 	pass
@@ -31,7 +41,7 @@ func _physics_process(_delta):
 func set_direction(_dirVector = false):
 	pass
 	
-func drift_process_movement(delta):
+func drift_process_movement(_delta):
 
 	# --- Tuning Parameters ---
 	var agility = 20.0
@@ -40,9 +50,7 @@ func drift_process_movement(delta):
 
 	# --- 1. Reset AI Intent ---
 	accel = Vector2.ZERO
-	set_interest()
-	set_danger()
-	choose_direction()
+	handle_steering_intentions(_delta)
 	
 
 	# --- 2. Determine Desired Facing Direction ---
@@ -50,13 +58,13 @@ func drift_process_movement(delta):
 	var desired_angle = desired_world_dir.angle()
 
 	# Rotate toward desired direction instead of snapping
-	rotation = lerp_angle(rotation, desired_angle, turn_speed * delta)
+	rotation = lerp_angle(rotation, desired_angle, turn_speed * _delta)
 
 	# --- 3. Apply Engine Thrust In Nose Direction ---
 	var forward = Vector2.RIGHT.rotated(rotation)
 	accel = forward * enginePower
 
-	velocity += accel * delta
+	velocity += accel * _delta
 
 	# --- 4. Energy Maneuverability Model ---
 	var travel_dir = velocity.normalized()
@@ -71,47 +79,77 @@ func drift_process_movement(delta):
 	var forward_velocity = velocity.project(forward)
 	var lateral_velocity = velocity - forward_velocity
 
-	velocity -= lateral_velocity * side_drag * delta
+	velocity -= lateral_velocity * side_drag * _delta
 
 	# --- 6. Clamp Speed Instead of Normalizing ---
 	var max_allowed_speed = maxSpeed * clamp(speed_modifier, 0.7, 1.2)
-	velocity = velocity.clamped(max_allowed_speed)		
+	velocity = velocity.clamped(max_allowed_speed)
 		
-func process_movement(_delta):
-	# 1. Reset and calculate AI intention
-	var agility = 20.0
-	accel = Vector2.ZERO
+func process_movement(delta: float) -> void:
+	if maxSpeed <= 0.0:
+		return
+
+	# 1. Steering intent. The raycasts are the expensive part, so THIS is what
+	#    gets throttled - set_interest/set_danger/choose_direction move together.
+#	_steer_countdown -= 1
+#	if _steer_countdown <= 0:
+#		_steer_countdown = MOVE_STEER_EVERY
 	set_interest()
 	set_danger()
 	choose_direction()
 
-	# 2. Determine our desired engine push
-	# We normalize chosen_dir first so diagonal inputs don't give "free" speed
-	var thrust_direction = chosen_dir.rotated(rotation).normalized()
-	accel = thrust_direction * enginePower
+	# 2. Thrust as a world-space unit vector. chosen_dir is accumulated in LOCAL
+	#    ray space, so exactly one rotation is applied - here, once.
+	var thrust_dir: Vector2 = _thrust_dir_world()
 
-	# 3. Apply acceleration to velocity
-	velocity += accel * _delta
+	# 3. Heading being travelled, with a fallback for a standing start.
+	var heading: Vector2 = thrust_dir
+	if velocity.length_squared() > MOVE_DIR_EPS:
+		heading = velocity.normalized()
 
-	# 4. Energy Maneuverability (The "Air Resistance" Logic)
-	# Compare current travel direction with where we want to go
-	var travel_dir = velocity.normalized()
-	var target_dir = accel.normalized()
-	var dot = travel_dir.dot(target_dir) # 1.0 = straight, 0.0 = 90-degree turn
+	# 4. Airspeed is its own state, so a turn can bleed it and it recovers
+	#    gradually instead of snapping back to maxSpeed on the next frame.
+	if _airspeed <= 0.0:
+		_airspeed = max(velocity.length(), maxSpeed * 0.5)
 
-	# We use 'agility' to reduce the speed-loss penalty during turns.
-	# Higher agility = closer to 1.0 (maintains speed better)
-	var turn_efficiency = lerp(0.8, 1.0, (dot + 1.0) / 2.0) 
-	var speed_modifier = turn_efficiency * (agility / 20.0)
+	# 5. Rate-limited turn toward the thrust direction (inertia, no snapping).
+	var agility_scale: float = MOVE_AGILITY / 20.0
+	var turn_rate: float = deg2rad(MOVE_TURN_RATE_BASE_DEG) * agility_scale
+	var ang_err: float = heading.angle_to(thrust_dir)
+	var max_step: float = turn_rate * delta
+	heading = heading.rotated(clamp(ang_err, -max_step, max_step))
 
-	# 5. Lock speed and apply the "Air Grip"
-	# We ensure the jet stays within its combat flight envelope
-	velocity = velocity.normalized() * maxSpeed * clamp(speed_modifier, 0.7, 1.2)
+	# 6. Turn bleed: straight -> full speed, 180° -> MOVE_MIN_SPEED_FRAC.
+	#    Actual rate of change is limited by enginePower, so heavy ships take
+	#    longer to recover the speed a hard turn cost them.
+	var severity: float = clamp(abs(ang_err) / PI, 0.0, 1.0)
+	var target_speed: float = maxSpeed * lerp(1.0, MOVE_MIN_SPEED_FRAC, severity)
+	var rate: float = MOVE_SPEED_RELAX * (enginePower if enginePower > 0.0 else maxSpeed)
+	_airspeed = _approach(_airspeed, target_speed, rate * delta)
 
-	# 6. Update Visuals
-	# The jet nose always follows the velocity vector
-	if velocity.length() > 0.1:
-		rotation = velocity.angle()
+	velocity = heading * _airspeed
+	accel = thrust_dir * enginePower
+	rotation = velocity.angle()
+		
+func _thrust_dir_world() -> Vector2:
+	var local: Vector2 = chosen_dir
+	if local.length_squared() > MOVE_DIR_EPS:
+		return local.rotated(rotation).normalized()
+
+	# Symmetric cancellation (target dead astern is the classic case) or no
+	# interest at all: steer straight at the target rather than coasting.
+	if moveTarget != Vector2.ZERO:
+		var to_target: Vector2 = moveTarget - global_position
+		if to_target.length_squared() > MOVE_DIR_EPS:
+			return to_target.normalized()
+	if velocity.length_squared() > MOVE_DIR_EPS:
+		return velocity.normalized()
+	return Vector2.RIGHT.rotated(rotation)
+
+func _approach(cur: float, target: float, step: float) -> float:
+	if cur < target:
+		return min(cur + step, target)
+	return max(cur - step, target)
 		
 func process_crash_rotation(delta):
 	

@@ -13,6 +13,7 @@ var speed:int
 var dmgType:int
 var minDmg:int
 var maxDmg:int
+var isPiercing:bool
 var aoe:int = 0
 var faction:int
 var projSize:float
@@ -63,6 +64,7 @@ func constructProj(weapon):
 	speed = weapon.speed
 	minDmg = weapon.minDmg
 	maxDmg = weapon.maxDmg
+	isPiercing = weapon.isPiercing
 	aoe = weapon.aoe
 	lifetime = weapon.lifetime
 	projSize = weapon.projSize

@@ -9,8 +9,8 @@ func do_sub_init_weapon():
 	connect_shield_timer_signals()
 	$Shield.position.x = shieldDist
 	$Shield.scale.y = $Shield.scale.y / 36 * shieldLength
-	$ColNodes/Shield/A.position.x = shieldDist
-	$ColNodes/Shield/A.shape.extents.y = (36 / 0.4 * $Shield.scale.y)
+	$ColNodes/Shield/CollisionShape2D.position.x = shieldDist
+	$ColNodes/Shield/CollisionShape2D.shape.extents.y = (36 / 0.4 * $Shield.scale.y)
 	$Sprites/Main.hide()
 	
 func _physics_process(_delta):

@@ -638,8 +638,8 @@ func endRamming(area):
 	if not len(rammings):
 #		print("isRamming = false")
 		isRamming = false
-	else:
-		print("dign")
+#	else:
+#		print("dign")
 	
 func canExplodeOnContact():
 	return false

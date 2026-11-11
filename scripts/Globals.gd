@@ -368,7 +368,6 @@ func getRandomBaseWeaponByType(type):
 func constructWeapon(data):
 #	print("constructWeapon")
 	var weapon;
-	var dmg = {"dmgType": data.dmgType, "min": data.minDmg, "max": data.maxDmg, "aoe": data.aoe}
 	match data.type:
 		1:
 			weapon = Globals.weapon_proj.instance()
@@ -389,17 +388,38 @@ func constructWeapon(data):
 #	weapon.desc = data.desc
 #	print(weapon.get_node("Sprites/Main").scale)
 	return weapon
-
-func load_new():
-	print("load_new")
+	
+func get_type_from_csv(name, value):
+	match name:
+		"type": return int(value)
+		"display": return str(value)
+		"dmgType": return int(value)
+		"turnrate": return float(value)
+		"health": return int(value)
+		"texture": return str(value)
+		"desc": return str(value)
+		"projSize": return float(value)
+		"projNumber": return int(value)
+		"deviation": return int(value)
+		"burst": return int(value)
+		"rof": return float(value)
+		"minDmg": return int(value)
+		"maxDmg": return int(value)
+		"aoe": return int(value)
+		"speed": return int(value)
+		"lifetime": return float(value)
+		"beamLength": return int(value)
+		"beamWidth": return int(value)
+		"steerForce": return int(value)
+		"forPlayer": return int(value)
+		"linearDevi": return int(value)
+		"burstDelay": return float(value)
+		"displaceTimer": return float(value)
+		"displaceForce": return float(value)
+		"isPiercing": return int(value)
 	
 func load_weapons_csv():
-#	load_new()
 	print("load_weapons_csv")
-#	var array = ["key", "value"]
-#	var dicti = {}
-#	dicti[array[0]] = array[1]
-#	print(dicti)
 	var file = File.new()
 	var header = []
 	var line = -1
@@ -418,31 +438,12 @@ func load_weapons_csv():
 			break
 		elif line > 0:
 			var dict = {}
-			dict[header[0]] = int(csv[0])
-			dict[header[1]] = str(csv[1])
-			dict[header[2]] = int(csv[2])
-			dict[header[3]] = float(csv[3])
-			dict[header[4]] = int(csv[4])
-			dict[header[5]] = str(csv[5])
-			dict[header[6]] = str(csv[6])
-			dict[header[7]] = float(csv[7])
-			dict[header[8]] = int(csv[8])
-			dict[header[9]] = int(csv[9])
-			dict[header[10]] = int(csv[10])
-			dict[header[11]] = float(csv[11])
-			dict[header[12]] = int(csv[12])
-			dict[header[13]] = int(csv[13])
-			dict[header[14]] = int(csv[14])
-			dict[header[15]] = int(csv[15])
-			dict[header[16]] = float(csv[16])
-			dict[header[17]] = int(csv[17])
-			dict[header[18]] = int(csv[18])
-			dict[header[19]] = int(csv[19])
-			dict[header[20]] = int(csv[20])
-			dict[header[21]] = int(csv[21])
-			dict[header[22]] = float(csv[22])
-			dict[header[23]] = float(csv[23])
-			dict[header[24]] = float(csv[24])
+			
+			var index:int = 0
+			for n in header:
+				dict[n] = get_type_from_csv(n, csv[index])
+				index += 1
+				
 			weaponTemplates.append(dict)
 
 func getItemBase(display):
@@ -642,7 +643,7 @@ func add_unit_to_scene(unit, faction:int):
 	Globals.curScene.get_node(nodePath).add_child(unit)
 	Globals.set_faction(unit, faction)
 	unit.do_init_unit()
-	unit.set_armaments()
+#	unit.set_armaments()
 	
 func set_faction(entity, faction):
 #	entity.faction = faction_id

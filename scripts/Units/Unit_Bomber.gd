@@ -56,9 +56,7 @@ func set_direction(_dirVector = false):
 
 func process_movement(_delta):
 #	print(rotation)
-	set_interest()
-	set_danger()
-	choose_direction()
+	handle_steering_intentions(_delta)
 	accel += chosen_dir.rotated(rotation) * engine
 #	accel = accel.normalized() * maxSpeed
 	accel = accel.limit_length(engine)

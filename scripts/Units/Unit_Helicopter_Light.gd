@@ -32,9 +32,7 @@ func _physics_process(_delta):
 	
 func process_movement(_delta):
 	
-	set_interest()
-	set_danger()
-	choose_direction()
+	handle_steering_intentions(_delta)
 	accel = chosen_dir.rotated(rotation) * maxSpeed
 	accel = accel.limit_length(maxSpeed)
 	velocity += accel * _delta

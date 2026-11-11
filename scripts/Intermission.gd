@@ -2,6 +2,9 @@ extends Base_Level
 class_name Intermission
 
 func _ready():
+	pass
+	
+func set_level_number():
 	Globals.GAMESCREEN.cur_lvl_number = 0
 	level_type = 0
 

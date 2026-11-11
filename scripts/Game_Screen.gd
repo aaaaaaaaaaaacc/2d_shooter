@@ -64,22 +64,22 @@ func start_new_mission(map_node:Map_Node):
 		print("__________")
 		print("do start mission")
 		
-		load_respective_base_stage(map_node)
+		instantiate_basestage_scene(map_node)
 		
 		Globals.curScene.get_node("Objective_Scene").add_child(map_node.mission_class)
 		Globals.curScene.add_child(Globals.UI)
 		
 		Globals.GAMESCREEN.add_child(Globals.curScene)
+		Globals.curScene.setupLevel()
 		Globals.GAMESCREEN.get_node("Menu_BG").hide()
 		
 		Globals.handler_mission.mission_node = map_node
 		Globals.handler_mission.do_enable()
 		
 		map_node.mission_class.logic.mission_final_setup_self()
-		
 
-func load_respective_base_stage(map_node):
-#	print(map_node.base_stage)
+func instantiate_basestage_scene(map_node):
+	print("instantiate_basestage_scene")
 	Globals.curScene = load(str("res://scenes/", map_node.base_stage, ".tscn")).instance()
 	Globals.curScene.name = "Level"
 	

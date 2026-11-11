@@ -645,10 +645,11 @@ func set_armaments():
 	
 	var weapons = []
 	weapons.append(get_and_init_shield())
-	weapons.append(Globals.getWeaponBase("Laserblaster"))
-	weapons.append(Globals.getWeaponBase("Nukelauncher"))
 	weapons.append(Globals.getWeaponBase("Autocannon"))
-	weapons.append(Globals.getWeaponBase("Player Rail"))
+#	weapons.append(Globals.getWeaponBase("Laserblaster_1"))
+	weapons.append(Globals.getWeaponBase("Laserblaster_2"))
+	weapons.append(Globals.getWeaponBase("Nukelauncher"))
+#	weapons.append(Globals.getWeaponBase("Player Rail"))
 	
 	for n in weapons:
 		Globals.set_faction(n, faction)

@@ -11,6 +11,8 @@ var ray_directions = []
 var ray_degree = []
 var chosen_dir = Vector2.ZERO
 var avoidValues = []
+const MOVE_DIR_EPS: float = 0.0001
+const STEER_UPDATE_DELTA = 0.1
 
 var num_rays:int
 var look_ahead:int
@@ -37,6 +39,7 @@ var boostStrength:int = 0
 var boostTimeRemain:float = 0
 var steer_force:int = 0
 
+var steering_update_delta:float = 0.2
 var ready = true
 var dmgBreaks = []
 
@@ -45,7 +48,6 @@ var ram
 onready var sprite = $Sprites/Main
 onready var state_m = $SM
 
-var dir_update_frames:int = 12
 
 func _ready():
 	add_to_group("isUnit")
@@ -58,6 +60,7 @@ func do_init_unit():
 	
 	set_stats()
 	setMass()
+	set_armaments()
 
 	connectHurtBoxes()
 	
@@ -434,7 +437,7 @@ func set_inactive():
 			n.get_node("Weapon").doDisable()
 		
 	for n in $ThrusterNodes.get_children():
-		n.visible = false
+		n.get_child(0).emitting = false
 	
 #	if debug_menu_row != null and is_instance_valid(debug_menu_row):
 #		debug_menu_row.hide()
@@ -453,6 +456,7 @@ func set_stats():
 	armor = stats.armor
 	maxSpeed = stats.maxSpeed
 	minSpeed = stats.minSpeed
+	enginePower = stats.enginePower
 	lootValue = stats.lootValue
 	sightRange = stats.sightRange
 	look_ahead = stats.look_ahead
@@ -468,12 +472,30 @@ func stop_delayed_explosion_effects():
 	for n in $EffectNodes.get_children():
 		if n.is_explosion and n.delay >= 0.0:
 			n.set_physics_process(false)
-		
-func setup_delayed_warp_in(time):
-	print("setup_delayed_warp_in for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames(), " visible: ", visible)
-	
+
+func hide_unit_fully():
 	$Sprites.hide()
 	$ThrusterNodes.hide()
+	$Jump.hide()
+	
+	for n in $Mounts.get_children():
+		n.hide()
+		for i in n.get_children():
+			i.hide()
+			
+func show_unit_fully():
+	$Sprites.show()
+	$ThrusterNodes.show()
+	$Jump.show()
+	
+	for n in $Mounts.get_children():
+		n.show()
+		for i in n.get_children():
+			i.show()
+			
+func setup_delayed_warp_in(time):
+	print("setup_delayed_warp_in for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames(), " visible: ", visible)
+	hide_unit_fully()
 	hide_all_control_nodes()
 	set_inactive()
 	var timer = Timer.new()
@@ -519,8 +541,7 @@ func warpInStepOne():
 	tween.tween_callback(self, "warp_in_phase_two")
 
 func warp_in_phase_two():
-	$Sprites.show()
-	$ThrusterNodes.show()
+	show_unit_fully()
 	$Sprites.scale = Vector2.ZERO
 	$Sprites.modulate.a = 0.0
 	$Mounts.scale = Vector2.ZERO
@@ -961,12 +982,27 @@ func getActiveWeapon():
 func getDangerValue():
 	return 3.0
 
+func _crash_state_active() -> bool:
+	var sm = get_node_or_null("SM")
+	if sm == null:
+		return false
+	var st = sm.get("states")
+	var cur = sm.get("state")
+	if not (st is Dictionary) or cur == null:
+		return false
+	if not st.has("crash"):
+		return false
+	return cur == st["crash"]
+
+
 func initSteering():
 	interest.resize(num_rays)
 	danger.resize(num_rays)
 	ray_directions.resize(num_rays)
 	ray_degree.resize(num_rays)
 	for i in num_rays:
+		interest[i] = 0.0
+		danger[i] = 0.0
 		var angle = i * 2 * PI / num_rays
 		ray_directions[i] = Vector2.RIGHT.rotated(angle)
 		ray_degree[i] = rad2deg(angle)
@@ -980,13 +1016,22 @@ func initSteering():
 			line.add_point(Vector2.RIGHT.rotated(angle) * look_ahead)
 			line.name = str("steer_choice", i)
 			$Debug/steering_input.add_child(line)
+			
+func handle_steering_intentions(delta):
+	steering_update_delta -= delta
+	if steering_update_delta <= 0:
+#		if not _crash_state_active():
+			steering_update_delta = STEER_UPDATE_DELTA
+	#		print("handle_steering_intentions: ", Engine.get_idle_frames())
+			set_interest()
+			set_danger()
+			choose_direction()
 
 func set_interest():
-	if moveTarget:
+	if moveTarget != Vector2.ZERO:          # was: if moveTarget:  (always true)
 		var path_direction: Vector2 = (moveTarget - global_position).normalized()
 		for i in num_rays:
-			var d = ray_directions[i].rotated(rotation).dot(path_direction)
-			interest[i] = max(0, d)
+			interest[i] = max(0.0, ray_directions[i].rotated(rotation).dot(path_direction))
 	else:
 		set_default_interest()
 		
@@ -996,36 +1041,37 @@ func set_default_interest():
 		interest[i] = 0
 
 func set_danger():
-	if $SM.state != $SM.states.crash: 
-		var space_state = get_world_2d().direct_space_state
-		for i in num_rays:
-			var cast = space_state.intersect_ray(
-				position,
-				position + ray_directions[i].rotated(rotation) * look_ahead, [self], 0b10000, false, true
-			)
-			if cast:
-				danger[i] = getDangerValueFromEntity(cast.collider.owner.display)
-				if danger[i] == null:
-	#				print("NULL VALUE ", self.display, " raycast into ", cast.collider.owner.display)
-					danger[i] = 0.0
-			else:
+#	print("set_danger: ", Engine.get_idle_frames())
+	if _crash_state_active():
+		return
+	var space_state = get_world_2d().direct_space_state
+	for i in num_rays:
+		var cast = space_state.intersect_ray(
+			global_position, 
+			global_position + ray_directions[i].rotated(rotation) * look_ahead, [self], 0b10000, false, true
+		)
+		if cast:
+			danger[i] = getDangerValueFromEntity(cast.collider.owner.display)
+			if danger[i] == null:
+#				print("NULL VALUE ", self.display, " raycast into ", cast.collider.owner.display)
 				danger[i] = 0.0
+		else:
+			danger[i] = 0.0
 
 func choose_direction():
-	dir_update_frames -= 1
-	if dir_update_frames > 0:
-		return
-	
-	dir_update_frames = 12
+#	print("choose_dir: ", Engine.get_idle_frames())	
 		
 	for i in num_rays:
 		if danger[i] > 0.0:
 			interest[i] -= danger[i]
-		
-	chosen_dir = Vector2.ZERO
+
+	var sum := Vector2.ZERO
 	for i in num_rays:
-		chosen_dir += ray_directions[i] * interest[i]
-	chosen_dir = chosen_dir.normalized()
+		sum += ray_directions[i] * interest[i]
+
+	# Guard the normalize: normalizing a near-zero vector amplifies noise and
+	# is what produced the "target exactly behind" deadlock.
+	chosen_dir = Vector2.ZERO if sum.length_squared() < MOVE_DIR_EPS else sum.normalized()
 	
 	if Globals.MOVEDEBUG:
 		for i in num_rays:

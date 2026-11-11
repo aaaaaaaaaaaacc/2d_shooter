@@ -81,7 +81,7 @@
 		"id": 0, "type": 2, "display": "Counterbarrage System", "weight": 3, "cost": 1, "constructor": "ITEM_PASSIVE", "texture": "CounterbarrageSystem", 
 		"desc": "Taking damage triggers a missile volley", "charges": 0, "cooldown": 3.0, "script": "CounterbarrageSystem", "trigger": "on_shield_damage",
 			"result":[
-				{"isStat": false, "stacks": 5, "type": 2, "faction": 0, "dmgType": 0, "speed": 550, "minDmg": 4, "maxDmg": 6, "aoe": 25, "lifetime": 5.0, "steerForce": 36, "projNumber": 1,"projSize": 0.7, "displaceForce": 0.0, "displaceTimer": 0.0}
+				{"isStat": false, "stacks": 5, "type": 2, "faction": 0, "dmgType": 0, "speed": 550, "minDmg": 4, "maxDmg": 6, "aoe": 25, "lifetime": 5.0, "steerForce": 36, "projNumber": 1,"projSize": 0.7, "displaceForce": 0.0, "displaceTimer": 0.0, "isPiercing": 0}
 			]
 	},
 	{

@@ -20,8 +20,6 @@ func do_specific_unit_init():
 		if mount.has_node("Weapon"):
 			if mount.get_node("Weapon").display == "Flak":
 				mount.add_health_bar(0.5)
-				
-		
 		
 func kill_by_crash():
 	.kill_by_crash()

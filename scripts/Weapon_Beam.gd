@@ -132,6 +132,7 @@ func handleBeamCharging():
 #		#$BeamCharge.scale = Vector2(0.4, 0.4)
 #
 func fillStatsRows():
+	subPanel_Stats.addEntry("Piercing", isPiercing)
 	subPanel_Stats.addEntry("Cooldown", rof)
 	subPanel_Stats.addEntry("Duration", lifetime)
 	subPanel_Stats.addEntry("Beams", projNumber)
