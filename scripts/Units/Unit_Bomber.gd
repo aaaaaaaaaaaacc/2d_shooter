@@ -20,9 +20,6 @@ func _ready():
 func _physics_process(_delta):
 	pass
 	
-func set_direction(_dirVector = false):
-	pass
-	
 #func missile_move_logic(delta):
 #	accel += seek()
 #	accel = accel.limit_length(accelLimit)

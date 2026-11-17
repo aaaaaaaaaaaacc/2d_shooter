@@ -675,7 +675,7 @@ func addStartingItems():
 	addItem(Globals.getItemBase("Conv. Bomb Rack (A)"))
 #	addItem(Globals.getItemBase("Conv. Bomb Rack (P)"))
 #	addItem(Globals.getItemBase("Missile Pod (P)"))
-	addItem(Globals.getItemBase("Counterbarrage System"))
+#	addItem(Globals.getItemBase("Counterbarrage System"))
 	
 #	addItem(Globals.getItemBase("Orbital Strike: Beam (A)"))
 	

@@ -18,7 +18,7 @@ func _process_state_logic(delta):
 				parent.remove_cur_target_set_new_target()
 		_state_logic(delta)
 		var transition = _get_transition(delta)
-		if transition != null:
+		if transition != null and transition >= 0:
 			set_state(transition)
 			
 func _state_logic(delta):
@@ -30,6 +30,7 @@ func set_state(new_state):
 		
 	prev_state = state
 	state = new_state
+	print("entering state: ", state)
 	
 	if prev_state != null:
 		_exit_state(prev_state, new_state)
@@ -46,7 +47,7 @@ func set_state(new_state):
 		
 func add_state(state_name):
 	states[state_name] = states.size()
-	state = states.size()
+#	state = states.size()
 	
 func _get_transition(delta):
 	pass

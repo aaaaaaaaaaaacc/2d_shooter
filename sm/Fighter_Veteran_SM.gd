@@ -3,17 +3,14 @@ class_name VeteranFighter_SM
 
 # --- Veteran tuning ---------------------------------------------------------
 export var GUN_RANGE: float = 260.0           # within this the veteran will fire
-export var BREAK_TRIGGER_DIST: float = 180.0  # player this close on our six = break
+export var BREAK_TRIGGER_DIST: float =  400.0  # player this close on our six = break
 export var BREAK_DIST: float = 420.0          # how far the break jink goes
 export var ZOOM_DIST: float = 1000.0          # extension length after a pass
-export var RECOVER_MIN_DWELL: float = 0.5
 export var REACTION_TIME: float = 0.12        # perceived "human" delay before reacting
 export var AGGRESSION: float = 0.85           # 0..1, scales engage distances
-export var MAX_CRASH_CHAIN: int = 2
 
 var _aim_point: Vector2 = Vector2.ZERO
 var _last_state: int = -1
-var _crash_chain: int = 0
 var _reaction_clock: float = 0.0
 var _pending_transition: int = -1
 
@@ -23,14 +20,13 @@ func _ready():
 	add_state("plus")
 	add_state("break")
 	add_state("zoom")
-	add_state("recover")
 
 
 func _enter_state(_prev, new_state):
 	# Let the base set moveTarget for the shared states it knows about.
 	if new_state in [states.idle, states.wander, states.close, states.trail,
 			states.disengage, states.withdraw, states.crash]:
-		_enter_state(_prev, new_state)
+		._enter_state(_prev, new_state)
 	else:
 		_state_time = 0.0
 		_cooldown = STATE_SWITCH_COOLDOWN
@@ -53,9 +49,6 @@ func _enter_state(_prev, new_state):
 			if away.length() < 1.0:
 				away = Vector2.RIGHT.rotated(parent.global_rotation)
 			parent.moveTarget = parent.global_position + away.normalized() * ZOOM_DIST * AGGRESSION
-		states.recover:
-			# Small controlled re-orientation after a crash.
-			parent.moveTarget = parent.global_position + Vector2.RIGHT.rotated(parent.global_rotation) * 300.0
 
 
 func _state_logic(delta):
@@ -76,7 +69,7 @@ func _state_logic(delta):
 			pass
 
 		states.wander:
-			_state_logic(delta)
+			._state_logic(delta)
 
 		states.close:
 			if not _has_live_target():
@@ -104,9 +97,6 @@ func _state_logic(delta):
 		states.zoom:
 			parent.process_movement(delta)
 
-		states.recover:
-			parent.process_movement(delta)
-
 		states.disengage:
 			if _has_live_target():
 				parent.moveTarget = _offset_target(DISENGAGE_MOVE_TARGET_DIST)
@@ -116,23 +106,20 @@ func _state_logic(delta):
 			parent.process_movement(delta)
 
 		states.crash:
-			parent.process_movement(delta)
+			parent.process_movement_crash(delta)
 
 
-func _get_transition(_delta):
-	var next := _intermediate_transition()
+func _get_transition(_delta) -> int:
+	var next: int = _intermediate_transition()
 	if next == -1:
-		# Fall back to the base rules for anything the veteran logic didn't claim.
-		next = _get_transition(_delta)
+		var base_next = ._get_transition(_delta)
+		next = -1 if base_next == null else int(base_next)
 
-	# Debounce/reaction gate: anything other than "nothing" is queued, except
-	# crash, which is immediate (you don't react to a crash, you're in one).
-	if next != null and next != -1 and next != state and next != states.crash:
+	if next != -1 and next != state and next != states.crash:
 		if _pending_transition == -1:
 			_pending_transition = next
 			_reaction_clock = REACTION_TIME
-			return null
-		return null
+		return -1
 	return next
 
 
@@ -170,30 +157,7 @@ func _intermediate_transition() -> int:
 			if _has_live_target() and _energy_ok() and _state_time > 0.3:
 				return states.plus
 			return -1
-
-		states.recover:
-			if _state_time > RECOVER_MIN_DWELL and _has_live_target():
-				return states.close if _target_distance() < parent.sightRange else states.wander
-			return -1
-
-		states.crash:
-			if _state_time < CRASH_MIN_DWELL:
-				return -1
-			if _state_time < CRASH_MIN_DWELL * 3.0:
-				return states.recover
-			_crash_chain = 0
-			return states.close if _has_live_target() else states.wander
-
 	return -1
-
-
-func _exit_state(prev, new_state):
-	_exit_state(prev, new_state)
-	if prev == states.crash and new_state != states.recover:
-		_crash_chain += 1
-		if _crash_chain > MAX_CRASH_CHAIN:
-			_crash_chain = 0
-
 
 # --- Veteran helpers --------------------------------------------------------
 
@@ -204,9 +168,9 @@ func get_aim_point() -> Vector2:
 	var t = parent.curTarget
 	var tpos: Vector2 = t.global_position
 	if "velocity" in t and t.velocity is Vector2:
-		var travel: Vector2 = parent.global_position.distance_to(tpos)
+#		var travel: Vector2 = parent.global_position.distance_to(tpos)
 		var flight := tpos.distance_to(parent.global_position) / max(1.0, parent.velocity.length())
-		_aim_point = tpos + t.velocity * flight * AGGRESSION
+		_aim_point = tpos + t.velocity * flight #* AGGRESSION
 	else:
 		_aim_point = tpos
 	return _aim_point

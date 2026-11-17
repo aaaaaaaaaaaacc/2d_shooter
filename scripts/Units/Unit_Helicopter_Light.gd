@@ -1,12 +1,5 @@
 extends Air_Unit
 class_name Helicopter_Light
-#
-#const CRASH_GRAVITY := 30.0
-#const CRASH_DRAG := 0.995
-#const CRASH_ROT_ACCEL_MIN := 0.1
-#const CRASH_ROT_ACCEL_MAX := 0.2
-#const CRASH_ROT_SPEED_MAX := 10.0
-
 
 # Tunable Crash Physics Constants
 const CRASH_GRAVITY := 140.0          # Downward acceleration (increase for heavier feel)

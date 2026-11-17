@@ -40,8 +40,10 @@ func _state_logic(delta):
 				if d >= parent.sightRange * 0.9:
 					set_state(states.close)
 		states.crash:
-			pass
-#			parent.process_movement(delta)
+			if parent.crashing:
+				parent.process_movement_crash(delta)
+			else:
+				parent.process_movement(delta)
 	
 func _get_transition(delta):
 	pass

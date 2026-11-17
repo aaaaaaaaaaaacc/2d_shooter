@@ -86,26 +86,6 @@ func get_crash_velo():
 	
 func get_crash_angle():
 	return round(rand_range(13, 18))
-	
-func xcrash_step_two():
-	disableAllThrusterParticles()
-
-	var direction:int = 1
-	if $Sprites/Main.flip_h == true:
-		direction = -1
-	
-	var rota = get_crash_angle() * direction
-	var dist_to_ground = Globals.HEIGHT - position.y
-	var time = dist_to_ground / get_crash_velo() / 3
-	var targetX = 550 * direction
-	
-	$Tween.interpolate_property(self, "position",
-		position, Vector2(position.x + targetX, Globals.HEIGHT - 30), ceil(time),
-		Tween.TRANS_QUAD, Tween.EASE_IN)
-	$Tween.interpolate_property(self, "rotation_degrees",
-		rotation_degrees, rotation_degrees + rota, ceil(time* 0.9),
-		Tween.TRANS_QUAD, Tween.EASE_IN)
-	$Tween.start()
 		
 func kill():
 	if indestructable:

@@ -4,6 +4,6 @@
 
 [resource]
 shader = ExtResource( 1 )
-shader_param/speed = 1.0
-shader_param/glow_strength = 1.5
+shader_param/speed = 0.7
+shader_param/glow_strength = 1.0
 shader_param/band_width = 0.2

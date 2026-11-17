@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=2]
+[gd_scene load_steps=17 format=2]
 
 [ext_resource path="res://scripts/Units/Unit_Drone_Kamikaze.gd" type="Script" id=1]
 [ext_resource path="res://textures/drone2.png" type="Texture" id=2]
@@ -55,9 +55,6 @@ animations = [ {
 "speed": 15.0
 } ]
 
-[sub_resource type="RectangleShape2D" id=4]
-extents = Vector2( 12, 8 )
-
 [node name="Drone_Kamikaze" instance=ExtResource( 5 )]
 script = ExtResource( 1 )
 stats = ExtResource( 7 )
@@ -88,9 +85,5 @@ frames = SubResource( 11 )
 visible = false
 
 [node name="A" parent="Mounts" index="0" instance=ExtResource( 6 )]
-
-[node name="A" type="CollisionShape2D" parent="ColNodes/DmgNormal" index="0"]
-position = Vector2( 1, 0 )
-shape = SubResource( 4 )
 
 [editable path="ThrusterNodes/Aft"]

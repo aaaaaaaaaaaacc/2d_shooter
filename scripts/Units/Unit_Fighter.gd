@@ -1,24 +1,47 @@
 extends Strikecraft_Unit
 class_name Fighter
 
-const CRASH_GRAVITY := 30.0
-const CRASH_DRAG := 0.995
-const CRASH_ROT_ACCEL_MIN := 0.3
-const CRASH_ROT_ACCEL_MAX := 0.5
-const CRASH_ROT_SPEED_MAX := 10.0
+ # Minimum speed during a crash
+const CRASH_MIN_SPEED := 180.0
+
+# Minimum horizontal speed
+const CRASH_MIN_HORIZONTAL_SPEED := 120.0
+
+# -- crashing
+const CRASH_GRAVITY := 40.0          # Downward acceleration (increase for heavier feel)
+const CRASH_X_DRAG := 1.002          # Horizontal air resistance
+const CONTROL_LOSS_TIME := 2.5
+
+# Pitch behavior
+const CRASH_ROT_ACCEL_MIN := 5.0
+const CRASH_ROT_ACCEL_MAX := 12.0
+const CRASH_ROT_SPEED_MAX := 35.0
+const CRASH_NOSE_DIVE_ANGLE := 25.0
+
+# Initial instability
+const WOBBLE_SPEED := 5.0
+const WOBBLE_STRENGTH := 2.5
+
+# Preserve most of the original momentum
+const CRASH_VELOCITY_PRESERVE := 0.99
+
+# Gradual downward instability
+const CRASH_DOWNWARD_IMPULSE := 15.0
+
+var crash_elapsed := 0.0
+var spin_direction := 1.0
+var initial_crash_rot := 0.0
+var target_nose_angle:int = 0
 
 # ── Flight model ─────────────────────────────────────────────────────────────
-const MOVE_AGILITY: float = 10.0              # turn authority (was a local 20.0)
+const MOVE_AGILITY: float = 0.5              # turn authority
 const MOVE_TURN_RATE_BASE_DEG: float = 200.0  # heading change, deg/s, at agility 20
 const MOVE_SPEED_RELAX: float = 1.5           # 1/s convergence of airspeed to target
 const MOVE_MIN_SPEED_FRAC: float = 0.55       # speed floor at a full 180° reversal
-const MOVE_STEER_EVERY: int = 3               # frames between steering recomputes
-#const MOVE_DIR_EPS: float = 0.0001
 
 var _airspeed: float = 0.0                    # scalar speed actually being carried
-var _steer_countdown: int = 0
 
-var display = "Fighter"
+var display = "Fighter Adv"
 	
 func do_specific_unit_init():
 	if position.x < Globals.WIDTH / 2:
@@ -37,66 +60,12 @@ func _physics_process(_delta):
 #	print("# ", self.id, ", rota: ", rotation_degrees)
 	#print(rotation_degrees)
 	pass
-	
-func set_direction(_dirVector = false):
-	pass
-	
-func drift_process_movement(_delta):
-
-	# --- Tuning Parameters ---
-	var agility = 20.0
-	var turn_speed = 3.5
-	var side_drag = 4.0
-
-	# --- 1. Reset AI Intent ---
-	accel = Vector2.ZERO
-	handle_steering_intentions(_delta)
-	
-
-	# --- 2. Determine Desired Facing Direction ---
-	var desired_world_dir = chosen_dir.rotated(rotation).normalized()
-	var desired_angle = desired_world_dir.angle()
-
-	# Rotate toward desired direction instead of snapping
-	rotation = lerp_angle(rotation, desired_angle, turn_speed * _delta)
-
-	# --- 3. Apply Engine Thrust In Nose Direction ---
-	var forward = Vector2.RIGHT.rotated(rotation)
-	accel = forward * enginePower
-
-	velocity += accel * _delta
-
-	# --- 4. Energy Maneuverability Model ---
-	var travel_dir = velocity.normalized()
-	var target_dir = forward.normalized()
-
-	var dot = travel_dir.dot(target_dir)
-
-	var turn_efficiency = lerp(0.8, 1.0, (dot + 1.0) / 2.0)
-	var speed_modifier = turn_efficiency * (agility / 20.0)
-
-	# --- 5. Apply Lateral Drag (Kills Sideways Sliding Slowly) ---
-	var forward_velocity = velocity.project(forward)
-	var lateral_velocity = velocity - forward_velocity
-
-	velocity -= lateral_velocity * side_drag * _delta
-
-	# --- 6. Clamp Speed Instead of Normalizing ---
-	var max_allowed_speed = maxSpeed * clamp(speed_modifier, 0.7, 1.2)
-	velocity = velocity.clamped(max_allowed_speed)
 		
 func process_movement(delta: float) -> void:
 	if maxSpeed <= 0.0:
 		return
-
-	# 1. Steering intent. The raycasts are the expensive part, so THIS is what
-	#    gets throttled - set_interest/set_danger/choose_direction move together.
-#	_steer_countdown -= 1
-#	if _steer_countdown <= 0:
-#		_steer_countdown = MOVE_STEER_EVERY
-	set_interest()
-	set_danger()
-	choose_direction()
+		
+	handle_steering_intentions(delta)
 
 	# 2. Thrust as a world-space unit vector. chosen_dir is accumulated in LOCAL
 	#    ray space, so exactly one rotation is applied - here, once.
@@ -113,11 +82,20 @@ func process_movement(delta: float) -> void:
 		_airspeed = max(velocity.length(), maxSpeed * 0.5)
 
 	# 5. Rate-limited turn toward the thrust direction (inertia, no snapping).
-	var agility_scale: float = MOVE_AGILITY / 20.0
-	var turn_rate: float = deg2rad(MOVE_TURN_RATE_BASE_DEG) * agility_scale
+	var turn_rate: float = deg2rad(MOVE_TURN_RATE_BASE_DEG) * MOVE_AGILITY
 	var ang_err: float = heading.angle_to(thrust_dir)
 	var max_step: float = turn_rate * delta
-	heading = heading.rotated(clamp(ang_err, -max_step, max_step))
+	
+	var turn_strength := 4.0
+	var turn_step := clamp(
+		ang_err * turn_strength * delta,
+		-max_step,
+		max_step
+	)
+	heading = heading.rotated(turn_step)
+
+
+#	heading = heading.rotated(clamp(ang_err, -max_step, max_step))
 
 	# 6. Turn bleed: straight -> full speed, 180° -> MOVE_MIN_SPEED_FRAC.
 	#    Actual rate of change is limited by enginePower, so heavy ships take
@@ -129,8 +107,9 @@ func process_movement(delta: float) -> void:
 
 	velocity = heading * _airspeed
 	accel = thrust_dir * enginePower
-	rotation = velocity.angle()
-		
+	rotation = velocity.angle()	
+
+
 func _thrust_dir_world() -> Vector2:
 	var local: Vector2 = chosen_dir
 	if local.length_squared() > MOVE_DIR_EPS:
@@ -150,36 +129,6 @@ func _approach(cur: float, target: float, step: float) -> float:
 	if cur < target:
 		return min(cur + step, target)
 	return max(cur - step, target)
-		
-func process_crash_rotation(delta):
-	
-	var dot = velocity.normalized().dot((moveTarget-global_position).normalized())
-	print("crashing")
-#	prinwwwwt(dot)
-	if abs(dot) > 0.97:
-		
-		crash_rotation_speed += crash_rotation_accel * delta
-
-		crash_rotation_speed = clamp(
-		crash_rotation_speed,
-		-CRASH_ROT_SPEED_MAX,
-		CRASH_ROT_SPEED_MAX
-		)
-
-		rotation_degrees += crash_rotation_speed * delta * 3
-		
-#		rotation_degrees = clamp(rotation_degrees, -10, 10)
-#		print(rotation_degrees)
-		print(">")
-			
-func process_crash_movement(delta):
-	var gravity = Vector2(0, 40)
-	
-	crash_velocity += gravity * delta
-	crash_velocity *= 0.995   # air drag
-
-	global_position += crash_velocity * delta
-	rotation += crash_rotation_speed * delta
 
 func shortest_angle_dist(from: float, to: float) -> float:
 	var twoPi = TAU
@@ -247,26 +196,6 @@ func is_outside_viewport(x, y):
 	if x > from.x and x < to.x and y > from.y and y < from.y:
 		return false
 	return true
-		
-#func get_point_inside_tex():
-#	var valid = false
-#	var tex = $Sprites/Main.get_texture().get_data()
-#	tex.lock()
-#
-#	var tries:int = 0
-#
-#	while not valid:
-#		tries += 1
-##		print("looping!")
-#		var pos = Vector2(Globals.rng.randi_range(0, texDim.x-1), Globals.rng.randi_range(0, texDim.y-1))
-##		print(pos)
-#		var p = tex.get_pixelv(pos)
-#		if p[3] == 1:
-#			return Vector2((-texDim.x/2)+pos.x, (-texDim.y/2)+pos.y) * $Sprites/Main.scale
-#
-#		if tries >= 100:
-#			break
-			
 	
 func enable_boosting():
 	return false
@@ -316,13 +245,10 @@ func getPossibleWeapons(index):
 func initAvoidValues():
 	avoidValues = {"Player": 1.0, "Fighter": 1.0, "Helicopter_Light": 1.0, "Boundary": 5.0, "Obstacle": 5.0, "Cargohauler": 3.5, "City": 3.5}
 	
-func get_crash_velo():
-	return ceil(maxSpeed * 1.15)
-	
 func crash_step_one():
-	$Tween.interpolate_property(self, "maxSpeed", maxSpeed, get_crash_velo(), 3.0)
-	$Tween.start()
-#	$Tween.connect("tween_all_completed", self, "crash_step_two")
+#	$Tween.interpolate_property(self, "maxSpeed", maxSpeed, get_crash_velo(), 3.0)
+#	$Tween.start()
+#	Tween.connect("tween_all_completed", self, "crash_step_two")
 	
 	for n in 1:
 		add_exp_fire_smoke_fx(1.25, 0.3)
@@ -332,42 +258,148 @@ func crash_step_one():
 func crash_step_two():
 	danger.fill(0.0)
 	crashing = true
+	crash_elapsed = 0.0
 
-	# Keep existing momentum but damp it
-#	crash_velocity = velocity * 0.4
-#	velocity = Vector2.ZERO
+	initial_crash_rot = rotation_degrees
+	# Preserve existing momentum
+	crash_velocity = velocity * CRASH_VELOCITY_PRESERVE
 
-	# Ensure some downward movement
-#	crash_velocity.y = max(crash_velocity.y, 10)
-#	crash_velocity.x = max(crash_velocity.x, 10) * direction.x
+	# Determine the jet's forward direction
+	var forward_dir = Vector2.RIGHT.rotated(rotation)
 
-	crash_rotation_speed = 0
-	crash_rotation_accel = rand_range(CRASH_ROT_ACCEL_MIN, CRASH_ROT_ACCEL_MAX)
-	crash_rotation_accel *= velocity.x
-	
-	if rotation_degrees > 55 and rotation_degrees < 125:
-		moveTarget = global_position + (Vector2.RIGHT.rotated(rotation +  Globals.rng.randf_range(-0.3, 0.3)) * Globals.rng.randi_range(600, 900))
-	elif velocity.x > 0:
-		moveTarget = Vector2(global_position.x + (Globals.HEIGHT-global_position.y)*2.5, Globals.HEIGHT)
-	elif velocity.x < 0:
-		moveTarget = Vector2(global_position.x - (Globals.HEIGHT-global_position.y)*2.5, Globals.HEIGHT)
+	if scale.x < 0.0:
+		forward_dir = -forward_dir
+
+	# Ensure a minimum amount of forward momentum
+	if crash_velocity.length() < CRASH_MIN_SPEED:
+		var missing_speed = CRASH_MIN_SPEED - crash_velocity.length()
+		crash_velocity += forward_dir * missing_speed
+
+	# Ensure sufficient horizontal movement
+	if abs(crash_velocity.x) < CRASH_MIN_HORIZONTAL_SPEED:
+		var horizontal_sign = sign(forward_dir.x)
+
+		if horizontal_sign == 0:
+			horizontal_sign = 1.0
+
+		crash_velocity.x = horizontal_sign * CRASH_MIN_HORIZONTAL_SPEED
+
+	# Start the uncontrolled descent
+	crash_velocity.y += CRASH_DOWNWARD_IMPULSE
+
+	velocity = Vector2.ZERO
+
+	# Determine which direction the jet is traveling
+	spin_direction = sign(crash_velocity.x)
 		
-#	maxSpeed *= 1.3
-#	enginePower *= 0.3
+#	if spin_direction == 0:
+#		spin_direction = 1.0 if scale.x >= 0.0 else -1.0
+		
+	target_nose_angle = CRASH_NOSE_DIVE_ANGLE * spin_direction
+
+	crash_rotation_speed = 0.0
+
+	crash_rotation_accel = rand_range(
+		CRASH_ROT_ACCEL_MIN,
+		CRASH_ROT_ACCEL_MAX
+	)
+
 	
-#	crash_velocity = velocity
-#	velocity = Vector2.ZERO
-#	crash_rotation_speed = Globals.rng.randf_range(-0.5, 0.5)
-	
-#	var timer = Timer.new()
-#	$TimerNodes.add_child(timer)
-#	timer.name = "CrashExploTimer"
-#	var time:float = Globals.rng.randf_range(7.0, 10.0)
-#	timer.wait_time = time
-#	timer.one_shot = true
-#	timer.autostart = true
-#	timer.start()
-#	timer.connect("timeout", self, "_on_crash_explo_timer_timeout")
+	for n in max_smoke:
+		add_exp_fire_smoke_fx(1.0, rand_range(0, 1) * n * 2)
+
+	for n in max_smoke:
+		var explo = Globals.getExplo("wreck", get_dmg_gfx_scale())
+		explo.set_as_toplevel(true)
+		explo.offset = get_point_inside_tex()
+		explo.delay = rand_range(0.3, 1.0) * n + 3
+		$EffectNodes.add_child(explo)
+
+
+func process_movement_crash(delta):
+	crash_elapsed += delta
+
+	# 0 = just lost control, 1 = completely uncontrolled
+	var control_loss = clamp(
+		crash_elapsed / CONTROL_LOSS_TIME,
+		0.0,
+		1.0
+	)
+
+	# Smooth progression into the uncontrolled descent
+	var dive_factor = control_loss * control_loss
+
+	# --------------------------------------------------
+	# 1. VERTICAL MOVEMENT
+	# --------------------------------------------------
+
+	# Gravity gradually takes over.
+	# The jet initially maintains its flight path.
+	var current_gravity = CRASH_GRAVITY * lerp(
+		0.25,
+		1.0,
+		dive_factor
+	)
+
+	crash_velocity.y += current_gravity * delta
+
+	# --------------------------------------------------
+	# 2. HORIZONTAL MOVEMENT
+	# --------------------------------------------------
+
+	# Very little drag: the jet retains its forward momentum.
+	crash_velocity.x *= pow(
+		CRASH_X_DRAG,
+		delta * 60.0
+	)
+
+	# --------------------------------------------------
+	# 3. ROTATION / LOSS OF CONTROL
+	# --------------------------------------------------
+
+	# Gradually increase the uncontrolled pitch movement
+	crash_rotation_speed += (
+		crash_rotation_accel * dive_factor * delta
+	)
+
+	crash_rotation_speed = min(
+		crash_rotation_speed,
+		CRASH_ROT_SPEED_MAX
+	)
+
+	# Gradually pitch the nose downward.
+#	# Do not force the jet into a steep vertical dive.
+#	var target_nose_angle = CRASH_NOSE_DIVE_ANGLE * spin_direction
+
+#	print(target_nose_angle)
+	initial_crash_rot = move_toward(
+		initial_crash_rot,
+		target_nose_angle,
+		crash_rotation_speed * delta
+	)
+
+	# Small uncontrolled shaking
+	var wobble = (
+		sin(crash_elapsed * WOBBLE_SPEED)
+		* WOBBLE_STRENGTH
+		* (1.0 - dive_factor * 0.5)
+	)
+
+	rotation_degrees = initial_crash_rot + wobble
+
+	# --------------------------------------------------
+	# 4. APPLY MOVEMENT
+	# --------------------------------------------------
+
+	global_position += crash_velocity * delta
+
+#	print(crash_velocity.x)
+	# --------------------------------------------------
+	# 5. GROUND COLLISION
+	# --------------------------------------------------
+
+	if global_position.y >= Globals.HEIGHT - 30:
+		crash_impact()
 
 func _on_crash_explo_timer_timeout():
 	kill()
@@ -461,3 +493,84 @@ func withdraw_condition(remDmg):
 			print("flee triggered")
 			return true
 	return false
+func process_movement_drift(delta: float) -> void:
+	if maxSpeed <= 0.0:
+		return
+
+	# 1. AI steering
+	# Ideally these calculations happen in your throttled steering update,
+	# rather than every physics frame.
+	set_interest()
+	set_danger()
+	choose_direction()
+
+	# 2. Desired direction of acceleration
+	var thrust_dir: Vector2 = _thrust_dir_world()
+
+	# 3. Rotate the aircraft nose towards the desired direction.
+	var nose_dir: Vector2 = Vector2.RIGHT.rotated(rotation)
+
+	var ang_err: float = nose_dir.angle_to(thrust_dir)
+
+	var turn_rate: float = deg2rad(MOVE_TURN_RATE_BASE_DEG) \
+		* (MOVE_AGILITY / 20.0)
+
+	var max_turn: float = turn_rate * delta
+
+	rotation += clamp(ang_err, -max_turn, max_turn)
+
+	# Recalculate nose direction after rotation.
+	nose_dir = Vector2.RIGHT.rotated(rotation)
+
+	# 4. Initialize airspeed if necessary.
+	if _airspeed <= 0.0:
+		_airspeed = max(velocity.length(), maxSpeed * 0.5)
+
+	# 5. Calculate maneuvering intensity.
+	# The difference between nose direction and velocity determines
+	# how aggressively the aircraft is maneuvering.
+	var speed: float = velocity.length()
+
+	var turn_severity: float = 0.0
+
+	if speed > MOVE_DIR_EPS:
+		var velocity_dir: Vector2 = velocity.normalized()
+		var alignment: float = clamp(
+			nose_dir.dot(velocity_dir),
+			-1.0,
+			1.0
+		)
+
+		turn_severity = abs(acos(alignment)) / PI
+
+	# 6. Turn bleed.
+	var target_speed: float = maxSpeed * lerp(
+		1.0,
+		MOVE_MIN_SPEED_FRAC,
+		turn_severity
+	)
+
+	var recovery_rate: float = MOVE_SPEED_RELAX * max(enginePower, 0.0)
+
+	_airspeed = _approach(
+		_airspeed,
+		target_speed,
+		recovery_rate * delta
+	)
+
+	# 7. Engine thrust.
+	# Acceleration follows the aircraft nose, not its velocity.
+	accel = nose_dir * enginePower
+
+	velocity += accel * delta
+
+	# 8. Simple drag.
+	velocity -= velocity * 0.1 * delta
+
+	# 9. Enforce maximum airspeed.
+	# This is an arcade flight envelope rather than a physical speed limit.
+	if velocity.length() > maxSpeed:
+		velocity = velocity.normalized() * maxSpeed
+
+	# 10. Keep actual airspeed synchronized with velocity.
+	_airspeed = velocity.length()

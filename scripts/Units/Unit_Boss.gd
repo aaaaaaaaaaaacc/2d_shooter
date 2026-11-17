@@ -20,18 +20,6 @@ func do_specific_unit_init():
 		if mount.has_node("Weapon"):
 			if mount.get_node("Weapon").display == "Flak":
 				mount.add_health_bar(0.5)
-		
-func kill_by_crash():
-	.kill_by_crash()
-		
-	for n in 35:
-		add_exp_fire_smoke_fx(rand_range(0.3, 1.0), rand_range(0.2, 0.6))
-		
-	for n in 10:
-		var explo = Globals.getExplo("radial", get_dmg_gfx_scale())
-		explo.position += position + get_point_inside_tex()
-		explo.rotation = Globals.rng.randi_range(0, 2*PI)
-		Globals.curScene.get_node("Various").add_child(explo)
 
 func crash_step_one():
 	.crash_step_one()
@@ -44,6 +32,18 @@ func crash_step_one():
 		power.track_insert_key(n, 2.0, $Sprites.get_child(n+1).self_modulate)
 		power.track_insert_key(n, 8.0, Color(0.4, 0.4, 0.4, 1.0))
 	$AnimationPlayer.play("crash_powering_down")
+		
+func kill_by_crash():
+	.kill_by_crash()
+		
+	for n in 35:
+		add_exp_fire_smoke_fx(rand_range(0.3, 1.0), rand_range(0.2, 0.6))
+		
+	for n in 10:
+		var explo = Globals.getExplo("radial", get_dmg_gfx_scale())
+		explo.position += position + get_point_inside_tex()
+		explo.rotation = Globals.rng.randi_range(0, 2*PI)
+		Globals.curScene.get_node("Various").add_child(explo)
 	
 func addPhysCollision():
 	var phys = CollisionShape2D.new()
@@ -129,9 +129,21 @@ func getPossibleWeapons(index):
 
 func getSelfSpawnPosition(viewFrom, viewTo):
 	return Vector2(Globals.WIDTH/2, Globals.HEIGHT/2 -200)
+	
+#func check_hp_post_dmg(amount):
+##	print("check_hp_post_dmg ", get_class())
+#	if health <= 0:
+#		kill()
+#	elif can_withdraw() and withdraw_condition(amount):
+#		enter_withdraw_condition_state()
+#	elif can_crash() and crash_condition(amount):
+#		enter_crash_condition_state()
+#	else:
+#		check_add_gfx_dmg_effect()
 
 func check_hp_post_dmg(amount):
-	.check_hp_post_dmg(amount)
+	check_add_gfx_dmg_effect()
+#	.check_hp_post_dmg(amount)
 
 	var tresh = [0.85, 0.65, 0.45, 0.25]
 	
@@ -155,10 +167,20 @@ func adjustEscalationVisuals():
 	var raws = [1.0, 1.8, 2.1, 2.3, 2.5]
 	var fps = [5, 6, 7, 8, 9]
 	var pick = raws[escalation]
-	for n in $Sprites.get_children():
-		if n is AnimatedSprite:
-			n.self_modulate = Color(pick, 1, 1, 1)
-			n.frames.set_animation_speed("default", fps[escalation])
+#	for n in $Sprites.get_children():
+#		if n is AnimatedSprite:
+#			n.self_modulate = Color(pick, 1, 1, 1)
+#			n.frames.set_animation_speed("default", fps[escalation])
+
+	var bars = [$Sprites/A, $Sprites/B, $Sprites/C, $Sprites/D, $Sprites/E]
+	var speed = 0.7 + (escalation * 0.2)
+	var glow_strength = 1.0 + (escalation * 0.25)
+	var band_width = 0.2 + (escalation * 0.05)
+	
+	for bar in bars:
+		bar.material.set_shader_param("speed", speed)
+		bar.material.set_shader_param("glow_strength", glow_strength)
+		bar.material.set_shader_param("band_width", band_width)
 			
 	if escalation == 1:
 		$AnimationPlayer.play("missile_type_activation")

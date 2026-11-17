@@ -42,7 +42,9 @@ func do_start_mission():
 	
 func do_setup():
 	var unit_group = []
-	unit_group.append({"type": handler_s.UnitType.FIGHTER, "name": "Boss", "amount": Globals.rng.randi_range(1, 1), "target": true})
+#	unit_group.append({"type": handler_s.UnitType.FIGHTER, "name": "Boss", "amount": Globals.rng.randi_range(1, 1), "target": true})
+#	unit_group.append({"type": handler_s.UnitType.FIGHTER_ADVANCED, "name": "Boss", "amount": Globals.rng.randi_range(1, 1), "target": true})
+	unit_group.append({"type": handler_s.UnitType.BOSS, "name": "Boss", "amount": Globals.rng.randi_range(1, 1), "target": true})
 	setup_attackers(unit_group)
 
 func setup_attackers(unitArray):

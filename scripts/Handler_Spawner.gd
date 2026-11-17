@@ -12,8 +12,8 @@ enum UnitType {
 	HELI_LIGHT,
 	HELI_HEAVY,
 	FIGHTER,
+	FIGHTER_ADVANCED,
 	BOMBER,
-#	FRIGATE,
 	DESTROYER,
 	CRUISER,
 	AA_TOWER,
@@ -57,7 +57,8 @@ const UNIT_SCENES = {
 	UnitType.HELI_LIGHT: preload("res://scenes/Units/Unit_Helicopter_Light.tscn"),
 	UnitType.HELI_HEAVY: preload("res://scenes/Units/Unit_Helicopter_Heavy.tscn"),
 	UnitType.FIGHTER: preload("res://scenes/Units/Unit_Fighter.tscn"),
-	UnitType.BOMBER: preload("res://scenes/Units/Unit_Bomber.tscn"),
+	UnitType.FIGHTER: preload("res://scenes/Units/Unit_Fighter.tscn"),
+	UnitType.FIGHTER_ADVANCED: preload("res://scenes/Units/Unit_Fighter_Advanced.tscn"),
 	UnitType.FRIGATE: preload("res://scenes/Units/Unit_Frigate.tscn"),
 	UnitType.DESTROYER: preload("res://scenes/Units/Unit_Destroyer.tscn"),
 	UnitType.CRUISER: preload("res://scenes/Units/Unit_Cruiser.tscn"),
@@ -72,7 +73,6 @@ const UNIT_SCENES = {
 	UnitType.DRONE_KAMIKAZE: preload("res://scenes/Units/Unit_Drone_Kamikaze.tscn"),
 	UnitType.UNIT_TEST: preload("res://scenes/Units/Unit_Test.tscn"),
 }
-
 var player
 var wave = Array()
 var enemies = Array()

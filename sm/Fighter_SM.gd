@@ -46,7 +46,6 @@ func _enter_state(_prev_state, new_state):
 	match new_state:
 		states.idle:
 			pass
-
 		states.wander:
 			# Prefer hunting a known target, else drift.
 			if _has_live_target():
@@ -56,28 +55,23 @@ func _enter_state(_prev_state, new_state):
 				parent.curTarget = null
 				parent.set_wander_target()
 				_wander_step = parent.moveTarget
-
 		states.close:
 			if not _has_live_target():
 				parent.set_new_target()
 			if _has_live_target():
 				parent.moveTarget = parent.curTarget.global_position
-
 		states.trail:
 			if not _has_live_target():
 				parent.set_new_target()
 			if _has_live_target():
 				parent.moveTarget = _trail_point()
-
 		states.disengage:
 			if _has_live_target():
 				parent.moveTarget = _offset_target(DISENGAGE_MOVE_TARGET_DIST)
 			else:
 				parent.set_wander_target()
-
 		states.withdraw:
 			parent.moveTarget = _offset_target(WITHDRAW_MOVE_TARGET_DIST)
-
 		states.crash:
 			parent.crash_step_one()
 
@@ -91,7 +85,6 @@ func _state_logic(delta):
 	match state:
 		states.idle:
 			pass
-
 		states.wander:
 			# Keep the wander step alive; refresh when it is reached.
 			if parent.moveTarget == Vector2.ZERO:
@@ -101,32 +94,27 @@ func _state_logic(delta):
 			if parent.global_position.distance_to(parent.moveTarget) <= NEXT_WANDER_STEP_DIST:
 				parent.set_wander_target()
 				_wander_step = parent.moveTarget
-
 		states.close:
 			if not _has_live_target():
 				return
 			parent.moveTarget = parent.curTarget.global_position
 			parent.process_movement(delta)
-
 		states.trail:
 			if not _has_live_target():
 				return
 			parent.moveTarget = _trail_point()
 			parent.process_movement(delta)
-
 		states.disengage:
 			# moveTarget was set on enter; only steer until it is reached or the
 			# target closes back in (handled by _get_transition).
 			if _has_live_target():
 				parent.moveTarget = _offset_target(DISENGAGE_MOVE_TARGET_DIST)
 			parent.process_movement(delta)
-
 		states.withdraw:
 			# moveTarget set on enter; don't chase the moving target here.
 			parent.process_movement(delta)
-
 		states.crash:
-			parent.process_movement(delta)
+			parent.process_movement_crash(delta)
 
 
 func _get_transition(_delta):
@@ -145,6 +133,7 @@ func _get_transition(_delta):
 			if _has_any_target():
 				# A target exists but wasn't adopted yet.
 				return states.close
+			return null
 
 		states.close:
 			if not _has_live_target():
@@ -238,6 +227,8 @@ func _exit_state(_prev_state, _new_state):
 
 func _has_live_target() -> bool:
 	var t = parent.curTarget
+#	var valid = t != null and is_instance_valid(t)
+#	print(valid)
 	return t != null and is_instance_valid(t)
 
 
@@ -263,6 +254,7 @@ func _trail_point() -> Vector2:
 
 # A point offset from the fighter's current heading (side jink).
 func _offset_target(dist: float) -> Vector2:
-	var angle = Globals.rng.randi_range(15, 23) * Globals.getRandomEntry([1, -1])
+#	var angle = Globals.rng.randi_range(15, 23) * Globals.getRandomEntry([1, -1])
+	var angle = Globals.rng.randi_range(15, 23) * Globals.getRandomEntry([1])
 	var dir = Vector2(1, 0).rotated(parent.global_rotation + deg2rad(angle))
 	return parent.global_position + dir * dist

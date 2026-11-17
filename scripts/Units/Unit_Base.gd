@@ -93,7 +93,7 @@ func check_unit_debug_init():
 		$Debug/MoveTargetVector.show()
 #		$Debug/C/stats.show()
 #		$Debug/C/behav.show()
-		$Debug/steering_input.hide()
+		$Debug/steering_input.show()
 		
 		
 func do_specific_unit_init():
@@ -892,7 +892,7 @@ func set_new_target():
 	if not targetsArr.size():
 		state_m.set_state(state_m.states.wander)
 #		print("no targets!")
-		return
+		return false
 	
 	var prio:int = 10
 	var curPrio:int = 0
@@ -920,7 +920,7 @@ func set_new_target():
 		state_m.set_state(state_m.states.close)
 
 func _on_Sight_area_entered(area):
-#	print(self.display, ", target: ", area.owner.display, " has LEFT sight !")
+	print("_on_Sight_area_entered ", self.display, ", target: ", area.owner.display)
 	if area.owner.isObstacle or self == area.owner or self.faction == area.owner.faction:
 		return
 	for n in targetsArr:
@@ -931,12 +931,15 @@ func _on_Sight_area_entered(area):
 	set_new_target()
 
 func _on_Sight_area_exited(area):
-#	print(self.display, ", target: ", area.owner.display, " has ENTERED sight !")
+	print("_on_Sight_area_exited ", self.display, ", target: ", area.owner.display)
 	for n in targetsArr:
 		if area.owner == n.target:
 			if n.prio != 0:
 #				print("deleting from targets")
 				targetsArr.erase(n)
+				if area.owner == curTarget:
+					print("active active out of sight")
+					curTarget = null
 			return
 			
 func _on_AggroLeave_area_exited(area):
@@ -1004,6 +1007,7 @@ func initSteering():
 		interest[i] = 0.0
 		danger[i] = 0.0
 		var angle = i * 2 * PI / num_rays
+#		var angle = deg2rad(-20.0 + i * 40.0 / (num_rays - 1))
 		ray_directions[i] = Vector2.RIGHT.rotated(angle)
 		ray_degree[i] = rad2deg(angle)
 		
@@ -1022,7 +1026,7 @@ func handle_steering_intentions(delta):
 	if steering_update_delta <= 0:
 #		if not _crash_state_active():
 			steering_update_delta = STEER_UPDATE_DELTA
-	#		print("handle_steering_intentions: ", Engine.get_idle_frames())
+#			print("handle_steering_intentions: ", Engine.get_idle_frames())
 			set_interest()
 			set_danger()
 			choose_direction()

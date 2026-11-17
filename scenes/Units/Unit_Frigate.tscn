@@ -186,7 +186,6 @@ maximum_rotation = 89.0
 scale = Vector2( 5.49501, -0.922956 )
 
 [node name="Node2D" parent="ColNodes" index="0" instance=ExtResource( 9 )]
-dmg_multi = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ColNodes/Node2D" index="0"]
 position = Vector2( 5, 2 )
