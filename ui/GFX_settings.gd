@@ -27,7 +27,7 @@ func _on_Resolution_item_selected(index):
 func _on_Zoom_item_selected(index):
 	var pick:float = Globals.zoom_options[index]
 	if Globals.ZOOM != Vector2(pick, pick):
-		Globals.curScene.setZoom(Vector2(Globals.zoom_options[index], Globals.zoom_options[index]))
+		Globals.curScene.set_zoom(Vector2(Globals.zoom_options[index], Globals.zoom_options[index]))
 		emit_signal("resolutionChange")
 
 func _on_Fullscreen_pressed():

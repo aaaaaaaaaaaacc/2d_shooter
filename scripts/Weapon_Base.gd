@@ -233,13 +233,18 @@ func do_fire(_target):
 #	print("do_fire")
 	if burst > 1:
 		if !bursting:
-			#print("can burst, not yet bursting")
+			print("can burst, not yet bursting, init burst to: ", bursting)
 			bursting = burst
 			burstCooldown = 0.0
+			curTarget = _target
 		
 		if bursting && burstCooldown <= 0:
 			bursting -= 1
+			print("bursting now: ", bursting, ", cooldown 0")
 			burstCooldown = burstDelay
+			if bursting == 0:
+				print("no burst charge left")
+				curTarget = null
 			#print("bursting -1")
 			#print("fire")
 		else: return

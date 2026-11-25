@@ -31,10 +31,13 @@ func do_init_mount():
 		add_health_bar(0.5)
 	else:
 		health = 0
+		$Sprites/Main.hide()
 		makeUntargetable()
 		
 	if invis:
 		$Sprites/Main.hide()
+		if has_node("Weapon"):
+			get_node("Weapon").get_node("Sprites").hide()
 	
 func init_mount_debug_arcs():
 	if Globals.AIMDEBUG and faction != 0 and has_node("Weapon"):
@@ -83,6 +86,7 @@ func kill():
 	
 	hide_control_nodes()
 	create_final_kill_explos()
+	add_fire_smoke_fx(1.3, 0.0)
 
 func create_final_kill_explos():
 	if maxHealth > 0:
@@ -149,7 +153,9 @@ func handle_mounted_weapon(targetsArr):
 		return
 	do_track_target()
 	if weapon.can_fire(): # check cooldown, emp or other conditions
-		if weapon.bursting or weapon.has_fire_solution(curTarget): # do i have the right vector / rotation achieved `?
+#		if weapon.bursting or weapon.has_fire_solution(curTarget): # do i have the right vector / rotation achieved `?
+#			weapon.handle_firing(curTarget) # spawn projectile
+		if weapon.has_fire_solution(curTarget): # do i have the right vector / rotation achieved `?
 			weapon.handle_firing(curTarget) # spawn projectile
 			
 func set_target_for_mount(allTargets):

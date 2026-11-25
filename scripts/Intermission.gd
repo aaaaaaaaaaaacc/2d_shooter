@@ -114,7 +114,7 @@ func createMainRect(baseColor:Color):
 	rect.set_mouse_filter(2)
 	
 func handleLevelStartZooming():
-	doZoom(0.1, 1, 1)
+	do_zoom(0.1, 1, 1)
 	
 func set_cam_limit():
 	$CamA.limit_left = -200

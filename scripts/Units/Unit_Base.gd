@@ -119,6 +119,7 @@ func addSightCollision():
 	$Sight.add_child(sight)
 	
 func addPhysCollision():
+#	return
 	var phys = CollisionShape2D.new()
 	phys.name = "CollisionShape2D"
 	phys.shape = CircleShape2D.new()
@@ -476,7 +477,7 @@ func stop_delayed_explosion_effects():
 func hide_unit_fully():
 	$Sprites.hide()
 	$ThrusterNodes.hide()
-	$Jump.hide()
+#	$Jump.hide()
 	
 	for n in $Mounts.get_children():
 		n.hide()
@@ -486,7 +487,7 @@ func hide_unit_fully():
 func show_unit_fully():
 	$Sprites.show()
 	$ThrusterNodes.show()
-	$Jump.show()
+#	$Jump.show()
 	
 	for n in $Mounts.get_children():
 		n.show()
@@ -502,11 +503,11 @@ func setup_delayed_warp_in(time):
 	timer.name = "WarpInTimer"
 	$TimerNodes.add_child(timer)
 #	$Globals.curScene.add_child(timer)
-	timer.connect("timeout", self, "doDelayedWarpIn", [timer])
+	timer.connect("timeout", self, "do_delayed_warp_in", [timer])
 	timer.wait_time = time
 	timer.start()
-	$Jump.visible = true
-	$Jump.scale = Vector2.ZERO
+#	$Jump.visible = true
+#	$Jump.scale = Vector2.ZERO
 	
 func setup_delayed_warp_out(time):
 	print("setup_delayed_warp_out for ", self.display, ": ", time, " seconds, frame ", Engine.get_idle_frames(), " visible: ", visible)
@@ -522,74 +523,42 @@ func setup_delayed_warp_out(time):
 	timer.wait_time = time
 	timer.start()
 
-func doDelayedWarpIn(timer):
+func do_delayed_warp_in(timer):
+#	print("do_delayed_warp_in on ", self.display, ", frame ", Engine.get_idle_frames())
 	timer.queue_free()
-	doWarpIn()
-	
-func doWarpIn():
-	warpInStepOne()
-
-func warpInStepOne():
-	print("warpInStepOne for ", self.display, ", frame ", Engine.get_idle_frames(), " visible: ", visible)
-	isWarping = true
-
-	var durIn = 1.0 * Globals.mod / 5
-	var tween = get_tree().create_tween()
-	
-	tween.tween_property($Jump, "scale", Vector2(10, 1), durIn)
-	tween.tween_property($Jump, "scale", Vector2(20, 15), durIn)
-	tween.tween_callback(self, "warp_in_phase_two")
-
-func warp_in_phase_two():
-	show_unit_fully()
-	$Sprites.scale = Vector2.ZERO
-	$Sprites.modulate.a = 0.0
-	$Mounts.scale = Vector2.ZERO
-	$Mounts.modulate.a = 0.0
-	$ThrusterNodes.visible = true
-	$Mounts.visible = true
-
-	var durOut = 1.0 * Globals.mod / 5
-	var tween = get_tree().create_tween().set_parallel(true)
-
-	tween.tween_property($Jump, "scale", Vector2(0, 0), durOut)
-	tween.tween_property($Sprites, "scale", Vector2(1, 1), durOut/2)
-	tween.tween_property($Sprites, "modulate:a", 1.0, durOut)
-	tween.tween_property($Mounts, "scale", Vector2(1, 1), durOut/2)
-	tween.tween_property($Mounts, "modulate:a", 1.0, durOut)
-	tween.set_parallel(false)
-	tween.tween_callback(self, "on_warp_in_done")
+	var jump = Globals.JUMP.instance()
+	Globals.curScene.get_node("Various/Jumps").add_child(jump)
+	jump.initiate(self)
+	jump.do_start_warp_in()
 	
 func on_warp_in_done():
 #	print(self.display, ": on_warp_in_done")
 	emit_signal("_has_warped_in")
 	isWarping = false
-	$Jump.scale = Vector2(1, 1)
-	$Jump.visible = false
-	$Jump.modulate.a = 1
 	
 	set_active()
 	show_all_control_nodes()
 #	enableWeapons()
 #	enableItems()
-	
+#	
 	if lifetime > 0.0:
 		$TimerNodes.get_node("rem_lifetime").start()
 		$ControlNodes.get_node("rem_lifetime_label").isUpdating = true
 		
-func doDisableShield():
-	$Mounts/A/.get_child(0).unpowerShield()
-	
 func cancelWarpOut():
 	print("cancelWarpOut")
 		
 func _do_delayed_warp_out(timer):
-	print("_do_delayed_warp_out on ", self.display, ", frame ", Engine.get_idle_frames())
+#	print("_do_delayed_warp_out on ", self.display, ", frame ", Engine.get_idle_frames())
 	timer.queue_free()
-	warp_out_phase_one()
+	var jump = Globals.JUMP.instance()
+	Globals.curScene.get_node("Various/Jumps").add_child(jump)
+	jump.initiate(self)
+	jump.do_start_warp_out()
 	
 func warp_out_phase_one():
-#	print("warp_out_phase_one")
+#	print("warp_out_phase_one for ", self.display, ", frame ", Engine.get_idle_frames(), " visible: ", visible)	
+	var jump = Globals.JUMP.instance()
 	if $TimerNodes.has_node("WarpOutTimer"):
 		$TimerNodes.get_node("WarpOutTimer").queue_free()
 		

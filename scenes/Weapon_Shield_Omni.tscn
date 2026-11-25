@@ -110,6 +110,7 @@ shader_param/shield_strength = 0.0
 shader_param/time = null
 
 [sub_resource type="CircleShape2D" id=11]
+resource_local_to_scene = true
 
 [node name="Weapon" instance=ExtResource( 3 )]
 script = ExtResource( 2 )

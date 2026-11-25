@@ -1,8 +1,7 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://scripts/Units/Unit_Base.gd" type="Script" id=1]
 [ext_resource path="res://styles/Font24.tres" type="DynamicFont" id=2]
-[ext_resource path="res://textures/beam_blue_short.png" type="Texture" id=3]
 
 [sub_resource type="StyleBoxFlat" id=1]
 bg_color = Color( 0, 0, 0, 0 )
@@ -106,11 +105,6 @@ material = SubResource( 3 )
 [node name="Items" type="Position2D" parent="."]
 
 [node name="Mounts" type="Position2D" parent="."]
-
-[node name="Jump" type="Sprite" parent="."]
-visible = false
-rotation = 1.5708
-texture = ExtResource( 3 )
 
 [node name="VisibilityNotifier2D" type="VisibilityNotifier2D" parent="."]
 visible = false

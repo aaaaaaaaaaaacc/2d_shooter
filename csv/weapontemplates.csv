@@ -21,7 +21,7 @@ type,display,dmgType,turnrate,health,texture,desc,projSize,projNumber,deviation,
 6,Gauss-Blaster,0,0.0,0,GaussBlaster,Aim for the eyes,1.0,3,3,1,1.7,6,8,0,575,2.5,0,0,0,1,0,0.0,0.0,0.0,1
 6,Player Rail,0,0.0,10,false,,1.0,1,2,3,2.0,8,11,0,1200,2.5,0,0,0,1,0,0.3,0.0,0.0,1
 6,Light Railgun,0,0.0,10,false,Heli_Rail,1.2,1,1,1,4.0,8,11,0,1800,2.5,0,0,0,0,0,0.0,0.0,0.0,1
-2,Boss Missile,0,0.0,0,false,Boss_Missile,0.8,1,0,4,6.0,4,6,30,800,6.0,0,0,40,0,0,0.4,0.0,0.0,1
+2,Boss Missile,0,0.0,0,false,Boss_Missile,0.8,1,0,4,6.0,4,6,30,600,6.0,0,0,120,0,0,0.4,0.0,0.0,1
 2,Light Missile,0,0.0,0,false,Fighter_Missile,0.8,1,0,1,6.0,4,6,30,700,6.0,0,0,40,0,0,0.0,0.0,0.0,1
 2,Light Bomb,0,0.0,0,false,Fighter_Bomb,0.8,1,0,3,3.0,4,6,30,250,6.0,0,0,0,0,0,0.4,0.0,0.0,1
 2,Medium Missile Burst,0,0.0,0,false,Mobile_AA_Missile,1.0,3,6,3,8.0,3,5,45,700,8.0,0,0,100,0,0,1.0,0.0,0.0,1

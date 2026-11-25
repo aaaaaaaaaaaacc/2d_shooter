@@ -12,9 +12,9 @@ func getMissile(target = null):
 		missile.setHomingTarget(target)
 		if vLaunch:
 			missile.homing = false
-			missile.homeTimer = 1.0
+			missile.homeTimer = 0.7
 #			missile.rotation = PI*-0.5 
-			missile.speed /= 4
+			missile.speed /= 3
 	return missile
 	
 func getTorp(target = null):

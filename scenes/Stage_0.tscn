@@ -147,6 +147,8 @@ z_index = 2
 
 [node name="Boundary" parent="Various" instance=ExtResource( 3 )]
 
+[node name="Jumps" type="Position2D" parent="Various"]
+
 [node name="Player_Pos" type="Position2D" parent="."]
 
 [node name="Position2D" type="Position2D" parent="."]

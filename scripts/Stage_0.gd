@@ -392,8 +392,9 @@ func placeCities():
 #			sprite.material = load("res://scenes/Shaders/Fog_Material.tres")
 
 func handleLevelStartZooming():
-	doZoom(0.1, Globals.ZOOM.x, 3.0)
-#	doZoom(0.1, 2.0, 0.2)	
+	set_zoom(Vector2(2.0, 2.0))
+#	do_zoom(0.1, Globals.ZOOM.x, 3.0)
+#	do_zoom(0.1, 2.0, 0.2)	
 	
 func get_class():
 	return "Stage0"
@@ -518,7 +519,7 @@ func createMainRect(baseColor:Color):
 			node.add_child(sprite)
 	
 	
-func doZoom(startZ, endZ, time):
+func do_zoom(startZ, endZ, time):
 	var dur = time * Globals.mod
 	Globals.ZOOM = Vector2(startZ, startZ)
 	$Refs/Zoom_Tweener.interpolate_property($CamA, "zoom",
@@ -526,9 +527,9 @@ func doZoom(startZ, endZ, time):
 		Tween.TRANS_QUAD, Tween.EASE_IN_OUT)
 	$Refs/Zoom_Tweener.start()
 	
-	$Refs/Zoom_Tweener.connect("tween_all_completed", self, "setZoom", [Vector2(endZ, endZ)])
+	$Refs/Zoom_Tweener.connect("tween_all_completed", self, "set_zoom", [Vector2(endZ, endZ)])
 	
-func setZoom(zoom):
+func set_zoom(zoom: Vector2):
 	Globals.ZOOM = zoom
 	$CamA.zoom = zoom
 
@@ -558,7 +559,7 @@ func readyPlayer():
 #	player.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT/2)
 #	player.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT-400)
 #	player.position = Vector2(Globals.WIDTH - 400, Globals.HEIGHT-400)
-	player.setup_delayed_warp_in(1.0)
+#	player.setup_delayed_warp_in(1.0)
 	
 func positionCamera():
 	$CamA.position = player.position

@@ -26,7 +26,10 @@ func _input(event):
 			if event.button_index == BUTTON_LEFT and event.pressed:
 				is_placing = false
 				unit.set_position_direction(Globals.MOUSE, Vector2.ZERO)
-				unit.set_active()
+				if unit.can_warp_in():
+					unit.setup_delayed_warp_in(0.1)
+				else:
+					unit.set_active()
 				unit = null
 			elif event.button_index == BUTTON_RIGHT and event.pressed:
 				is_placing = false

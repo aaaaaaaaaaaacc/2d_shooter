@@ -2,7 +2,8 @@ extends Mission_Base
 class_name Mission_Test
 
 const mission_time:float = 300.0
-const time_until_target_arrives:float = 1.0
+const time_until_target_arrives:float = 3.0
+const time_until_player_arrives:float = 1.0
 
 func _ready():
 	pass
@@ -21,7 +22,7 @@ func do_setup_player_for_mission():
 	Globals.curScene.readyPlayer()
 	Globals.PLAYER.position = Vector2(Globals.WIDTH/2, Globals.HEIGHT-400)
 	Globals.curScene.positionCamera()
-	Globals.PLAYER.setup_delayed_warp_in(1.0)
+	Globals.PLAYER.setup_delayed_warp_in(time_until_player_arrives)
 	
 func mission_final_setup_self():
 	do_init(mission_time)
@@ -29,7 +30,7 @@ func mission_final_setup_self():
 	do_setup()
 	
 	Globals.PLAYER.connect("_has_warped_in", self, "do_start_mission")
-	Globals.PLAYER.connect("_has_warped_in", self, "timescale", [0.25])
+#	Globals.PLAYER.connect("_has_warped_in", self, "timescale", [0.25])
 
 func timescale(factor):
 	return
@@ -65,7 +66,8 @@ func setup_attackers(unitArray):
 #			unit.connect("_has_warped_in", self, "timescale", [1.0])
 			
 			if unit.can_warp_in():
-				unit.setup_delayed_warp_in(time_until_target_arrives+2.0)
+				unit.setup_delayed_warp_in(time_until_player_arrives+0.1)
+				#unit.setup_delayed_warp_out(time_until_target_arrives+6.0)
 			else:
 				unit.set_active()
 

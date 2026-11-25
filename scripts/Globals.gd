@@ -39,6 +39,7 @@ const POI = preload("res://addon/POI.tscn")
 const POI_MARKER = preload("res://addon/POI_Marker.tscn")
 
 const BULLET = preload("res://scenes/Proj/Proj_Bullet.tscn")
+const JUMP = preload("res://scenes/Jump.tscn")
 #const BULLET_BLUE = preload("res://scenes/Proj/Proj_Bullet_Blue.tscn")
 #const BULLET_RED = preload("res://scenes/Proj/Proj_Bullet_Red.tscn")
 
@@ -202,7 +203,7 @@ func _physics_process(_delta):
 	if Input.is_action_just_pressed("middle_click"):
 		Globals.slowed = !Globals.slowed
 		if Globals.slowed:
-			Engine.set_time_scale(0.5)
+			Engine.set_time_scale(0.25)
 		else:
 			Engine.set_time_scale(1)
 #	frameCounter += 1

@@ -10,13 +10,15 @@ func do_specific_unit_init():
 	$ThrusterNodes/Aft/Particle2D.emitting = false
 	$Mounts/Missiles.hide()
 	$Sprites/Missile_Lights.hide()
-	$Mounts/Missiles.get_node("Weapon").doDisable()
+	
+#	disable_missile_tubes()
 	
 #	for n in $Mounts.get_children():
 #		n.get_node("Weapon").forcedDisabled = true
 #		n.get_node("Weapon").doDisable()
 
 	for mount in $Mounts.get_children():
+#		mount.position *= 1.75
 		if mount.has_node("Weapon"):
 			if mount.get_node("Weapon").display == "Flak":
 				mount.add_health_bar(0.5)
@@ -46,6 +48,7 @@ func kill_by_crash():
 		Globals.curScene.get_node("Various").add_child(explo)
 	
 func addPhysCollision():
+#	return
 	var phys = CollisionShape2D.new()
 	phys.name = "CollisionShape2D"
 	phys.shape = RectangleShape2D.new()
@@ -91,6 +94,19 @@ func getPossibleWeapons(index):
 ##		construct(init_type, init_display, init_health, init_turnrate, init_shield, init_shieldDist = 60, init_shieldLength = 36):
 #		weapon.construct(5, "Shield", 120, 70, 72)
 #		return weapon
+	
+	if index == 7: 
+#			return Globals.getWeaponBase("Heavy Autocannon")
+		var weapon = Globals.getWeaponBase("Boss Missile")
+#			var weapon = Globals.getWeaponBase("Swarmlauncher")
+		weapon.fof = 90
+#			weapon.steerForce = 60
+#			weapon.lifetime = 6.0
+#			weapon.displaceForce = 0.2
+		weapon.vLaunch = true
+#			weapon.forcedDisabled = true
+		return weapon
+	return false
 		
 	match index:
 		0:
@@ -108,8 +124,10 @@ func getPossibleWeapons(index):
 			return Globals.getWeaponBase("Flak")
 		6:
 #			return Globals.getWeaponBase("Flak")
+#			var shield = Globals.weapon_shield_omni.instance()
+#			var stats = {"maxShield": 30, "shieldRegenTime": 1.0, "shieldBreakTime": 4.0, "shieldFastCharge": 1.0, "shieldRadius": 180}
 			var shield = Globals.weapon_shield_dir.instance()
-			var stats = {"maxShield": 80, "shieldRegenTime": 0.5, "shieldBreakTime": 6.0, "shieldFastCharge": 0.75, "shieldDist": 100, "shieldLength": 72}
+			var stats = {"maxShield": 80, "shieldRegenTime": 0.5, "shieldBreakTime": 6.0, "shieldFastCharge": 0.75, "shieldDist": 150, "shieldLength": 200}
 			shield.construct(5, "Shield", stats)
 			shield.add_shield_bar()
 			
@@ -124,7 +142,7 @@ func getPossibleWeapons(index):
 #			weapon.lifetime = 6.0
 #			weapon.displaceForce = 0.2
 			weapon.vLaunch = true
-			weapon.forcedDisabled = true
+#			weapon.forcedDisabled = true
 			return weapon
 
 func getSelfSpawnPosition(viewFrom, viewTo):
@@ -143,44 +161,52 @@ func getSelfSpawnPosition(viewFrom, viewTo):
 
 func check_hp_post_dmg(amount):
 	check_add_gfx_dmg_effect()
-#	.check_hp_post_dmg(amount)
+	add_escalation()
 
 	var tresh = [0.85, 0.65, 0.45, 0.25]
 	
 	if escalation < tresh.size():
 		if health < self.maxHealth * tresh[escalation]:
 			print("health now: ", health, ", below: ", tresh[escalation])
-			addEscalation()
+			add_escalation()
 
-func addEscalation():
-	escalation += 1
-	print("esclation now: ", escalation)
-	adjustEscalationVisuals()
-	adjustEscalationMechanics()
+func add_escalation():
+	var max_escalation = 4
+	if escalation < max_escalation:
+		escalation += 1
+		print("add_escalation now: ", escalation)
+		adjustEscalationVisuals()
+		adjustEscalationMechanics()
 	
-func enableMissileTubes():
-	$Mounts/Missiles/Weapon.forcedDisabled = false
-	$Mounts/Missiles/Weapon.doEnable()
-	$Mounts/Missiles/Weapon.cooldown = 2.0
+func disable_missile_tubes():
+	if $Mounts/Missiles.has_node("Weapon"):
+		$Mounts/Missiles/Weapon.forcedDisabled = true
+		$Mounts/Missiles/Weapon.doDisable()
+	
+func enable_missile_tubes():
+	if $Mounts/Missiles.has_node("Weapon"):
+		$Mounts/Missiles/Weapon.forcedDisabled = false
+		$Mounts/Missiles/Weapon.doEnable()
+		$Mounts/Missiles/Weapon.cooldown = 2.0
 
 func adjustEscalationVisuals():
-	var raws = [1.0, 1.8, 2.1, 2.3, 2.5]
-	var fps = [5, 6, 7, 8, 9]
-	var pick = raws[escalation]
+#	var raws = [1.0, 1.8, 2.1, 2.3, 2.5]
+#	var fps = [5, 6, 7, 8, 9]
+#	var pick = raws[escalation]
 #	for n in $Sprites.get_children():
 #		if n is AnimatedSprite:
 #			n.self_modulate = Color(pick, 1, 1, 1)
 #			n.frames.set_animation_speed("default", fps[escalation])
 
-	var bars = [$Sprites/A, $Sprites/B, $Sprites/C, $Sprites/D, $Sprites/E]
+
 	var speed = 0.7 + (escalation * 0.2)
 	var glow_strength = 1.0 + (escalation * 0.25)
 	var band_width = 0.2 + (escalation * 0.05)
 	
-	for bar in bars:
-		bar.material.set_shader_param("speed", speed)
-		bar.material.set_shader_param("glow_strength", glow_strength)
-		bar.material.set_shader_param("band_width", band_width)
+	for sprite in $Sprites/Power.get_children():
+#		sprite.material.set_shader_param("speed", speed)
+		sprite.material.set_shader_param("glow_strength", glow_strength)
+		sprite.material.set_shader_param("band_width", band_width)
 			
 	if escalation == 1:
 		$AnimationPlayer.play("missile_type_activation")
@@ -194,7 +220,8 @@ func adjustEscalationVisuals():
 			
 func adjustEscalationMechanics():
 	for n in $Mounts.get_children():
-		n.get_node("Weapon").rof *= 0.8
+		if n.has_node("Weapon"):
+			n.get_node("Weapon").rof *= 0.8
 	
 func get_dmg_gfx_scale():
 	return 1.5

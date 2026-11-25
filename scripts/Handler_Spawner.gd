@@ -339,7 +339,7 @@ func spawnSpecial():
 	
 	enemy.connect("_isdestroyed", self, "_on_enemy_from_wave_destroyed", [enemy])
 	
-	Globals.curScene.doZoom(1, 1.5, 0.25)
+	Globals.curScene.do_zoom(1, 1.5, 0.25)
 	
 	var timerB = Timer.new()
 	Globals.curScene.add_child(timerB)

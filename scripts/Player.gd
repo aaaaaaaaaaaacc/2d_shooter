@@ -847,11 +847,12 @@ func setMass():
 #	ramBullet.impactForce = Vector2.ZERO
 #	return ramBullet
 	
-func on_warp_in_done():
-	print("on_warp_in_done")
-	emit_signal("_has_warped_in")
-	isWarping = false
-	set_active()
+#func on_warp_in_done():
+#	.on_warp_in_done()
+#	print("on_warp_in_done")
+#	emit_signal("_has_warped_in")
+#	isWarping = false
+#	set_active()
 
 func kill():
 	return
